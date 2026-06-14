@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>カンジモン 〜漢字島クイズ〜</title>
+<style>
+  /* ===============================
+     カンジモン ベースシステム v0.1
+     =============================== */
+  :root {
+    --wood-dark: #6b4226;
+    --wood-mid:  #8a5a33;
+    --wood-light:#c9986a;
+    --sky-top:   #7ec8f7;
+    --sky-bottom:#cdeffd;
+    --grass:     #7ccf5f;
+    --grass-dark:#4ea83e;
+    --gold:      #ffd54a;
+    --combo-fire:#ff7b2e;
+    --card-bg:   #fffbe8;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+  html,body { width:100%; height:100%; overflow:hidden; }
+  body {
+    font-family:"Hiragino Maru Gothic ProN","BIZ UDGothic","Yu Gothic",Meiryo,sans-serif;
+    background:linear-gradient(to bottom,var(--sky-top) 0%,var(--sky-bottom) 55%,var(--grass) 55.2%,var(--grass-dark) 100%);
+    color:#3a2a14;
+  }
+  button { font-family:inherit; cursor:pointer; }
+
+  /* ---------- 共通：プニッとボタン ---------- */
+  .puni-btn {
+    border:none; border-radius:18px;
+    padding:14px 36px; font-size:24px; font-weight:bold; color:#fff;
+    background:linear-gradient(#ffb648,#f3862c);
+    box-shadow:0 7px 0 #c45f12, 0 10px 14px rgba(0,0,0,.25);
+    transition:transform .08s, box-shadow .08s;
+  }
+  .puni-btn:active {
+    transform:translateY(6px) scale(.97);
+    box-shadow:0 1px 0 #c45f12, 0 2px 4px rgba(0,0,0,.25);
+  }
+  .puni-btn.blue { background:linear-gradient(#62c4ff,#2e8fdc); box-shadow:0 7px 0 #1565a8,0 10px 14px rgba(0,0,0,.25); }
+  .puni-btn.blue:active { box-shadow:0 1px 0 #1565a8,0 2px 4px rgba(0,0,0,.25); }
+
+  .screen { position:absolute; inset:0; display:none; }
+  .screen.active { display:flex; }
+
+  /* ============ タイトル画面 ============ */
+  #title-screen {
+    flex-direction:column; align-items:center; justify-content:center; gap:22px;
+    text-align:center;
+  }
+  #title-logo {
+    font-size:min(9vw,72px); font-weight:900; color:#fff; line-height:1.15;
+    text-shadow:0 4px 0 #b8651a, 0 8px 16px rgba(0,0,0,.3);
+    -webkit-text-stroke:2px #8a4a10;
+    animation:logoBob 2.4s ease-in-out infinite;
+  }
+  #title-logo small { display:block; font-size:.35em; -webkit-text-stroke:1px #8a4a10; }
+  @keyframes logoBob { 0%,100%{transform:translateY(0) rotate(-1.5deg);} 50%{transform:translateY(-12px) rotate(1.5deg);} }
+  #title-mons { font-size:54px; letter-spacing:14px; animation:logoBob 2.4s .3s ease-in-out infinite; }
+  #csv-box {
+    background:rgba(255,255,255,.85); border:3px dashed var(--wood-mid); border-radius:16px;
+    padding:14px 18px; width:min(620px,90vw); text-align:left;
+  }
+  #csv-box label { font-size:14px; font-weight:bold; color:var(--wood-dark); }
+  #csv-url {
+    width:100%; margin-top:6px; padding:10px 12px; font-size:14px;
+    border:2px solid var(--wood-light); border-radius:10px; outline:none;
+  }
+  #csv-status { font-size:13px; margin-top:6px; min-height:18px; color:#1b6e2d; font-weight:bold; }
+  #csv-status.err { color:#c62828; }
+
+  /* ============ ゲーム画面 ============ */
+  #game-screen { flex-direction:row; }
+  #battle-area { flex:1; display:flex; flex-direction:column; min-width:0; }
+
+  /* ---- 上部HUD ---- */
+  #hud {
+    display:flex; align-items:center; gap:14px;
+    padding:10px 16px 4px;
+  }
+  #combo-box {
+    position:relative; min-width:150px; text-align:center;
+    background:rgba(0,0,0,.35); border-radius:14px; padding:4px 14px; color:#fff;
+  }
+  #combo-label { font-size:12px; font-weight:bold; opacity:.9; }
+  #combo-num { font-size:34px; font-weight:900; line-height:1; text-shadow:0 2px 4px rgba(0,0,0,.4); transition:color .2s; }
+  #combo-box.fire #combo-num { color:var(--gold); }
+  #combo-flames { position:absolute; left:-8px; right:-8px; top:-20px; height:24px; pointer-events:none; display:flex; justify-content:space-around; opacity:0; transition:opacity .3s; }
+  #combo-box.fire #combo-flames { opacity:1; }
+  #combo-flames span { font-size:20px; animation:flame .5s ease-in-out infinite alternate; }
+  #combo-flames span:nth-child(2){ animation-delay:.15s; font-size:26px; }
+  #combo-flames span:nth-child(3){ animation-delay:.3s; }
+  @keyframes flame { from{transform:translateY(2px) scale(.9);} to{transform:translateY(-5px) scale(1.15);} }
+
+  #time-wrap { flex:1; }
+  #time-label { font-size:12px; font-weight:bold; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.4); margin-bottom:2px; }
+  #time-gauge {
+    height:22px; background:rgba(0,0,0,.35); border-radius:12px; overflow:hidden;
+    border:2px solid rgba(255,255,255,.7);
+  }
+  #time-bar {
+    height:100%; width:100%; border-radius:9px;
+    background:linear-gradient(90deg,#43d96b,#b9f04c);
+    transition:background .3s;
+  }
+  #time-bar.warn { background:linear-gradient(90deg,#ffae2e,#ffd54a); }
+  #time-bar.danger { background:linear-gradient(90deg,#ff4d4d,#ff8a65); }
+
+  #player-box {
+    text-align:right; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.45);
+    background:rgba(0,0,0,.35); border-radius:14px; padding:4px 14px; min-width:150px;
+  }
+  #player-box .lv { font-size:16px; font-weight:900; color:var(--gold); }
+  #player-box .exp { font-size:12px; font-weight:bold; }
+  #exp-gauge { height:8px; background:rgba(255,255,255,.3); border-radius:4px; overflow:hidden; margin-top:3px; }
+  #exp-bar { height:100%; width:0%; background:linear-gradient(90deg,#ffd54a,#ffab2e); transition:width .5s; }
+
+  /* ---- 木の看板（問題文） ---- */
+  #question-board {
+    margin:8px auto 0; position:relative;
+    width:min(640px,86%);
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.06) 0 4px, transparent 4px 46px),
+      linear-gradient(#a8713f,#8a5a33 60%,#6b4226);
+    border:6px solid #5a3318; border-radius:20px;
+    box-shadow:inset 0 4px 8px rgba(255,255,255,.25), inset 0 -6px 10px rgba(0,0,0,.35), 0 10px 18px rgba(0,0,0,.3);
+    padding:18px 26px 22px; text-align:center;
+  }
+  #question-board::before, #question-board::after {
+    content:""; position:absolute; top:-26px; width:14px; height:30px;
+    background:linear-gradient(#7a4a22,#5a3318); border-radius:4px;
+  }
+  #question-board::before { left:18%; } #question-board::after { right:18%; }
+  .board-nail { position:absolute; width:12px; height:12px; border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#ffe9b8,#9c7a3c 60%,#5a4316); box-shadow:0 1px 2px rgba(0,0,0,.5); }
+  .nail-tl{top:8px;left:10px;} .nail-tr{top:8px;right:10px;} .nail-bl{bottom:8px;left:10px;} .nail-br{bottom:8px;right:10px;}
+  #q-counter { font-size:14px; font-weight:bold; color:#ffe3b3; margin-bottom:4px; }
+  #q-text {
+    font-size:clamp(22px,3.6vw,34px); font-weight:900; color:#fff7e0; line-height:1.35;
+    text-shadow:0 2px 0 rgba(0,0,0,.45);
+  }
+  #q-text .target { color:var(--gold); font-size:1.25em; padding:0 2px; }
+
+  /* ---- モンスター（選択肢） ---- */
+  #monsters-row {
+    flex:1; display:flex; align-items:flex-end; justify-content:center;
+    gap:min(3vw,34px); padding:6px 12px 18px;
+  }
+  .mon-slot {
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    border:none; background:none; padding:0;
+    transition:transform .1s;
+    position:relative;
+  }
+  .mon-slot:active .choice-card { transform:scale(.92) translateY(4px); }
+  .mon-slot:active .slime { transform:scaleY(.82) scaleX(1.12); }
+  .choice-card {
+    width:clamp(96px,13vw,150px); height:clamp(96px,13vw,150px);
+    border-radius:14px; border:5px solid var(--wood-mid);
+    background:var(--card-bg);
+    box-shadow:0 6px 0 rgba(0,0,0,.18), 0 8px 12px rgba(0,0,0,.22);
+    object-fit:cover; display:block;
+    transition:transform .12s;
+  }
+  .slime { width:clamp(72px,9.5vw,110px); margin-top:-6px; transition:transform .12s; transform-origin:bottom center; }
+  .slime svg { width:100%; height:auto; display:block; animation:slimeBob 1.6s ease-in-out infinite; transform-origin:bottom center; }
+  .mon-slot:nth-child(2) .slime svg { animation-delay:.2s; }
+  .mon-slot:nth-child(3) .slime svg { animation-delay:.4s; }
+  .mon-slot:nth-child(4) .slime svg { animation-delay:.6s; }
+  @keyframes slimeBob { 0%,100%{transform:scaleY(1);} 50%{transform:scaleY(.93) scaleX(1.04);} }
+
+  .mon-slot.correct-pick .slime svg { animation:slimeJump .55s ease; }
+  @keyframes slimeJump { 0%{transform:translateY(0);} 35%{transform:translateY(-46px) scaleY(1.08);} 70%{transform:translateY(0) scaleY(.8) scaleX(1.2);} 100%{transform:translateY(0);} }
+  .mon-slot.correct-pick .choice-card { border-color:#2eb84f; box-shadow:0 0 0 5px rgba(70,220,110,.55), 0 0 28px 8px rgba(120,255,160,.8); }
+  .mon-slot.wrong-pick { animation:shakeX .45s; }
+  .mon-slot.wrong-pick .choice-card { border-color:#d33; filter:grayscale(.6); }
+  @keyframes shakeX { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-10px);} 40%{transform:translateX(9px);} 60%{transform:translateX(-7px);} 80%{transform:translateX(5px);} }
+  .mon-slot.dim { opacity:.35; filter:grayscale(.7); pointer-events:none; }
+  .mon-slot.reveal-correct .choice-card { border-color:#2eb84f; box-shadow:0 0 0 5px rgba(70,220,110,.55); }
+  .mon-slot:disabled { cursor:default; }
+
+  /* ---- 右サイド：ふらん器 ---- */
+  #incubator-panel {
+    width:min(210px,24vw); flex-shrink:0;
+    background:linear-gradient(#fdf3da,#f4dfb4);
+    border-left:6px solid var(--wood-mid);
+    display:flex; flex-direction:column; align-items:center;
+    padding:12px 10px; gap:8px;
+  }
+  #incu-title { font-size:17px; font-weight:900; color:var(--wood-dark);
+    background:#fff; border-radius:12px; padding:4px 14px; border:3px solid var(--wood-light); }
+  #nest {
+    width:120px; height:120px; position:relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #nest::after { /* わらの巣 */
+    content:""; position:absolute; bottom:-2px; left:50%; transform:translateX(-50%);
+    width:118px; height:44px; border-radius:50%;
+    background:repeating-linear-gradient(75deg,#d9a648 0 6px,#b9842e 6px 12px);
+    box-shadow:inset 0 -8px 10px rgba(0,0,0,.25), 0 4px 6px rgba(0,0,0,.2);
+    z-index:0;
+  }
+  #egg-slot { position:relative; z-index:1; width:86px; height:104px; margin-bottom:10px; }
+  #egg-slot .egg-svg { width:100%; height:100%; }
+  #egg-slot.empty { opacity:.35; filter:grayscale(1); }
+  #egg-slot.wiggle { animation:eggWiggle .5s ease; }
+  @keyframes eggWiggle { 0%,100%{transform:rotate(0);} 25%{transform:rotate(-9deg);} 50%{transform:rotate(8deg);} 75%{transform:rotate(-5deg);} }
+  #hatch-count {
+    font-size:14px; font-weight:900; text-align:center; color:#7a3b00; min-height:40px; line-height:1.4;
+  }
+  #hatch-count .num { font-size:24px; color:#e65100; }
+  #egg-queue { font-size:13px; font-weight:bold; color:var(--wood-dark); background:rgba(255,255,255,.7);
+    border-radius:10px; padding:4px 10px; }
+  #collection-count { font-size:13px; font-weight:bold; color:var(--wood-dark); }
+  #mon-shelf { display:flex; flex-wrap:wrap; gap:4px; justify-content:center; max-height:90px; overflow:hidden; font-size:24px; }
+
+  /* ---- フィードバックバナー ---- */
+  #feedback {
+    position:absolute; left:0; right:0; top:38%; text-align:center; pointer-events:none;
+    font-size:min(9vw,64px); font-weight:900; opacity:0; z-index:30;
+    -webkit-text-stroke:2px rgba(0,0,0,.25);
+  }
+  #feedback.show-good { animation:popBanner .9s ease forwards; color:#ffe24a; text-shadow:0 4px 0 #c47b00,0 8px 18px rgba(0,0,0,.35); }
+  #feedback.show-bad  { animation:popBanner .9s ease forwards; color:#9fd4ff; text-shadow:0 4px 0 #1d5e9e,0 8px 18px rgba(0,0,0,.35); }
+  @keyframes popBanner { 0%{opacity:0; transform:scale(.3);} 25%{opacity:1; transform:scale(1.15);} 45%{transform:scale(1);} 80%{opacity:1;} 100%{opacity:0; transform:scale(1.05) translateY(-16px);} }
+  #exp-float {
+    position:absolute; left:0; right:0; top:52%; text-align:center; pointer-events:none;
+    font-size:26px; font-weight:900; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.4); opacity:0; z-index:30;
+  }
+  #exp-float.show { animation:expRise 1s ease forwards; }
+  @keyframes expRise { 0%{opacity:0; transform:translateY(10px);} 25%{opacity:1;} 100%{opacity:0; transform:translateY(-40px);} }
+
+  /* ---- パーティクル ---- */
+  .particle { position:fixed; pointer-events:none; z-index:40; font-size:24px; will-change:transform,opacity; }
+
+  /* ---- タマゴドロップ演出 ---- */
+  #drop-egg { position:fixed; z-index:50; width:64px; height:78px; pointer-events:none; display:none; }
+  #drop-banner {
+    position:absolute; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:51;
+    font-size:min(7vw,44px); font-weight:900; color:#fff; opacity:0;
+    text-shadow:0 0 14px rgba(255,200,60,.9), 0 3px 0 rgba(140,80,0,.8);
+  }
+  #drop-banner.show { animation:popBanner 1.4s ease forwards; }
+
+  /* ---- 孵化オーバーレイ ---- */
+  #hatch-overlay {
+    position:absolute; inset:0; z-index:60; display:none;
+    align-items:center; justify-content:center; flex-direction:column; gap:14px;
+    background:radial-gradient(circle at center, rgba(255,250,210,.96) 0%, rgba(255,215,120,.94) 70%);
+  }
+  #hatch-overlay.active { display:flex; }
+  #hatch-egg-stage { width:160px; height:195px; position:relative; }
+  #hatch-egg-stage .egg-svg { width:100%; height:100%; }
+  #hatch-egg-stage.shaking { animation:hatchShake .3s linear infinite; }
+  @keyframes hatchShake { 0%,100%{transform:rotate(0);} 25%{transform:rotate(-7deg) translateX(-3px);} 75%{transform:rotate(7deg) translateX(3px);} }
+  #hatch-mon { font-size:110px; display:none; animation:bornPop .7s cubic-bezier(.2,1.6,.4,1) forwards; filter:drop-shadow(0 6px 10px rgba(0,0,0,.25)); }
+  #hatch-mon .mon-pic { display:block; width:150px; height:150px; object-fit:contain; }
+
+  /* カンジモン画像の共通：絵文字と同じ場所に収める */
+  .mon-visual { display:inline-flex; align-items:center; justify-content:center; }
+  .dex-emoji .mon-pic { width:54px; height:54px; object-fit:contain; vertical-align:middle; }
+  #mon-shelf .mon-pic { width:24px; height:24px; object-fit:contain; }
+  @keyframes bornPop { 0%{transform:scale(0) rotate(-30deg);} 70%{transform:scale(1.25) rotate(6deg);} 100%{transform:scale(1) rotate(0);} }
+  #hatch-text { font-size:30px; font-weight:900; color:#7a3b00; text-align:center; min-height:46px; }
+  #hatch-name { font-size:40px; color:#e65100; }
+  #hatch-close { display:none; }
+
+  /* ---- 図鑑NEW登録バッジ ---- */
+  #hatch-new-badge {
+    position:absolute; top:14%; left:50%; transform:translateX(-50%) scale(0);
+    display:none; flex-direction:column; align-items:center; gap:2px; pointer-events:none; z-index:5;
+    padding:8px 22px 10px; border-radius:18px;
+    background:linear-gradient(#ff4d6d,#d61f45);
+    border:3px solid #fff; box-shadow:0 6px 16px rgba(0,0,0,.3), 0 0 0 4px rgba(255,90,120,.4);
+  }
+  #hatch-new-badge.show { display:flex; animation:newBadgePop .6s cubic-bezier(.2,1.7,.4,1) forwards; }
+  #hatch-new-badge .nb-main { font-size:30px; font-weight:900; color:#fff; line-height:1;
+    text-shadow:0 2px 0 rgba(0,0,0,.25); letter-spacing:1px; }
+  #hatch-new-badge .nb-sub  { font-size:13px; font-weight:900; color:#fff3c4; }
+  #hatch-new-badge::before, #hatch-new-badge::after {
+    content:"✨"; position:absolute; top:-10px; font-size:20px; animation:flame .6s ease-in-out infinite alternate;
+  }
+  #hatch-new-badge::before { left:-14px; } #hatch-new-badge::after { right:-14px; }
+  @keyframes newBadgePop {
+    0%{transform:translateX(-50%) scale(0) rotate(-12deg);}
+    70%{transform:translateX(-50%) scale(1.2) rotate(6deg);}
+    100%{transform:translateX(-50%) scale(1) rotate(-4deg);}
+  }
+
+  /* ---- 進化演出（hatch-monに付与） ---- */
+  #hatch-mon.evolving {
+    animation:evoShake .22s linear infinite;
+    filter:brightness(4) saturate(0) drop-shadow(0 0 24px #fff);
+  }
+  @keyframes evoShake { 0%,100%{transform:translateX(-5px) scale(1.02);} 50%{transform:translateX(5px) scale(1.06);} }
+  #hatch-mon.evolved-pop { animation:evoPop .7s cubic-bezier(.2,1.7,.4,1); }
+  @keyframes evoPop {
+    0%{transform:scale(.3); filter:brightness(3) drop-shadow(0 0 24px #fff);}
+    60%{transform:scale(1.35);}
+    100%{transform:scale(1); filter:none;}
+  }
+
+  /* ---- ずかんボタン ---- */
+  #dex-btn { margin-top:2px; padding:9px 18px; font-size:17px;
+    background:linear-gradient(#9b6cff,#6a3fd6); box-shadow:0 6px 0 #4a2aa0,0 8px 12px rgba(0,0,0,.25); }
+  #dex-btn:active { box-shadow:0 1px 0 #4a2aa0,0 2px 4px rgba(0,0,0,.25); }
+
+  /* ---- タイトル画面のサブボタン ---- */
+  #title-sub-btns { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+  #title-sub-btns .puni-btn { font-size:16px; padding:10px 22px; }
+  #title-dex-btn {
+    background:linear-gradient(#9b6cff,#6a3fd6); box-shadow:0 7px 0 #4a2aa0,0 10px 14px rgba(0,0,0,.25); }
+  #title-dex-btn:active { box-shadow:0 1px 0 #4a2aa0,0 2px 4px rgba(0,0,0,.25); }
+
+  /* ---- 図鑑オーバーレイ（どの画面からも開けるよう画面全体に固定） ---- */
+  #dex-overlay {
+    position:fixed; inset:0; z-index:70; display:none;
+    align-items:center; justify-content:center; padding:18px;
+    background:rgba(40,28,70,.72); backdrop-filter:blur(2px);
+  }
+  #dex-overlay.active { display:flex; animation:dexFade .25s ease; }
+  @keyframes dexFade { from{opacity:0;} to{opacity:1;} }
+  #dex-window {
+    width:min(960px,96%); max-height:94%; display:flex; flex-direction:column;
+    background:linear-gradient(#fff6e2,#f3e0b6);
+    border:6px solid var(--wood-mid); border-radius:22px;
+    box-shadow:0 14px 40px rgba(0,0,0,.45); overflow:hidden;
+  }
+  #dex-header {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 18px; background:linear-gradient(#8a5a33,#6b4226); color:#fff7e0;
+  }
+  #dex-title { font-size:clamp(20px,3vw,28px); font-weight:900; text-shadow:0 2px 0 rgba(0,0,0,.4); }
+  #dex-progress { font-size:16px; font-weight:900; color:var(--gold);
+    background:rgba(0,0,0,.3); padding:3px 12px; border-radius:12px; }
+  #dex-close { margin-left:auto; padding:8px 18px; font-size:16px; }
+  #dex-bar-wrap { height:12px; background:#d9c08a; }
+  #dex-bar { height:100%; width:0%; background:linear-gradient(90deg,#ffd54a,#ff9a2e); transition:width .5s; }
+  #dex-grid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+    gap:12px; padding:16px; overflow-y:auto;
+  }
+  .dex-card {
+    border-radius:16px; border:4px solid var(--wood-light);
+    background:var(--card-bg); padding:10px 8px 12px; text-align:center;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    box-shadow:0 4px 0 rgba(0,0,0,.12);
+    transition:transform .1s;
+  }
+  .dex-card.got { cursor:default; }
+  .dex-card.got:active { transform:scale(.97); }
+  .dex-card .dex-emoji { font-size:52px; line-height:1.1; filter:drop-shadow(0 3px 4px rgba(0,0,0,.2)); }
+  .dex-card.locked { background:#efe6cf; border-color:#cdbf9c; }
+  .dex-card.locked .dex-emoji { color:#b3a279; }
+  .dex-card .dex-name { font-size:16px; font-weight:900; color:#5a3a18;
+    width:100%; text-align:center; white-space:nowrap; overflow:hidden; }
+  .dex-card.locked .dex-name { color:#a99873; letter-spacing:2px; }
+  .dex-card .dex-desc { font-size:11px; font-weight:bold; color:#7a5a30; line-height:1.35; min-height:30px; }
+  .dex-card .dex-meta { display:flex; gap:5px; align-items:center; font-size:11px; font-weight:900; }
+  .dex-egg-dot { width:13px; height:13px; border-radius:50%; border:1.5px solid rgba(0,0,0,.25); display:inline-block; }
+  .dex-count { background:var(--gold); color:#7a4a00; border-radius:10px; padding:1px 8px; }
+  .dex-card.got.shine { box-shadow:0 0 0 3px rgba(255,210,80,.7), 0 4px 0 rgba(0,0,0,.12); }
+  .dex-evo { font-size:11px; font-weight:900; line-height:1; }
+  .dex-evo.next { color:#9b6cff; }
+  .dex-card.got.evolved {
+    border-color:#ff9a2e;
+    background:linear-gradient(#fff6e0,#ffe6bd);
+    box-shadow:0 0 0 3px rgba(255,150,40,.55), 0 4px 0 rgba(0,0,0,.12);
+  }
+  .dex-card.got.evolved .dex-evo { color:#e0480a;
+    text-shadow:0 0 6px rgba(255,170,60,.8); animation:flame .7s ease-in-out infinite alternate; }
+  .dex-card.got.evolved .dex-name { color:#c2400a; }
+  /* 最終進化はさらに豪華に（虹枠＋金グロー） */
+  .dex-card.got.final {
+    border-color:#ffcf3a;
+    background:linear-gradient(#fff3d4,#ffe49e);
+    box-shadow:0 0 0 3px rgba(255,205,60,.85), 0 0 18px rgba(255,180,40,.6), 0 4px 0 rgba(0,0,0,.12);
+  }
+  .dex-card.got.final .dex-evo.final { color:#d11fae; text-shadow:0 0 7px rgba(255,140,220,.85); }
+  .dex-card.got.final .dex-name { color:#b3138e; }
+
+  /* ---- レベルアップ ---- */
+  #levelup-banner {
+    position:absolute; left:0; right:0; top:14%; text-align:center; pointer-events:none; z-index:55;
+    font-size:min(8vw,52px); font-weight:900; color:#ffec8a; opacity:0;
+    text-shadow:0 0 18px rgba(255,220,80,1), 0 4px 0 #a06000;
+  }
+  #levelup-banner.show { animation:popBanner 1.6s ease forwards; }
+
+  /* 縦画面のとき */
+  #rotate-hint {
+    position:fixed; inset:0; z-index:99; display:none;
+    background:rgba(20,30,60,.92); color:#fff;
+    align-items:center; justify-content:center; flex-direction:column; gap:12px;
+    font-size:20px; font-weight:bold; text-align:center; padding:20px;
+  }
+  #rotate-hint .phone { font-size:64px; animation:rotatePhone 1.6s ease-in-out infinite; display:inline-block; }
+  @keyframes rotatePhone { 0%,20%{transform:rotate(0);} 60%,100%{transform:rotate(90deg);} }
+  @media (orientation:portrait) and (max-width:600px) { #rotate-hint { display:flex; } }
+</style>
+</head>
+<body>
+
+<!-- ============ タイトル ============ -->
+<div id="title-screen" class="screen active">
+  <div id="title-logo">カンジモン<small>〜 かんじ島クイズ 〜</small></div>
+  <div id="title-mons">🥚🐲🥚</div>
+  <div id="csv-box">
+    <label>📋 もんだいスプレッドシート（こうかいCSVのURL）｜先生用</label>
+    <input id="csv-url" type="text" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?output=csv（空ならサンプル問題）">
+    <div id="csv-status"></div>
+  </div>
+  <button id="start-btn" class="puni-btn">ぼうけんに しゅっぱつ！</button>
+  <div id="title-sub-btns">
+    <button id="sample-btn" class="puni-btn blue">サンプルもんだいで あそぶ</button>
+    <button id="title-dex-btn" class="puni-btn">📖 ずかんを みる</button>
+  </div>
+</div>
+
+<!-- ============ ゲーム ============ -->
+<div id="game-screen" class="screen">
+  <div id="battle-area">
+    <div id="hud">
+      <div id="combo-box">
+        <div id="combo-flames"><span>🔥</span><span>🔥</span><span>🔥</span></div>
+        <div id="combo-label">コンボ</div>
+        <div id="combo-num">0</div>
+      </div>
+      <div id="time-wrap">
+        <div id="time-label">⏱ タイムボーナス</div>
+        <div id="time-gauge"><div id="time-bar"></div></div>
+      </div>
+      <div id="player-box">
+        <span class="lv">Lv.<span id="lv-num">1</span></span>
+        <span class="exp">EXP <span id="exp-num">0</span></span>
+        <div id="exp-gauge"><div id="exp-bar"></div></div>
+      </div>
+    </div>
+
+    <div id="question-board">
+      <span class="board-nail nail-tl"></span><span class="board-nail nail-tr"></span>
+      <span class="board-nail nail-bl"></span><span class="board-nail nail-br"></span>
+      <div id="q-counter">だい 1 もん</div>
+      <div id="q-text">よみこみちゅう…</div>
+    </div>
+
+    <div id="monsters-row"><!-- JSで4体生成 --></div>
+  </div>
+
+  <div id="incubator-panel">
+    <div id="incu-title">🌡 ふらん器</div>
+    <div id="nest"><div id="egg-slot" class="empty"></div></div>
+    <div id="hatch-count">タマゴを<br>さがそう！</div>
+    <div id="egg-queue">じゅんばんまち：0こ</div>
+    <div id="collection-count">なかま：<span id="mon-count">0</span>ひき</div>
+    <div id="mon-shelf"></div>
+    <button id="dex-btn" class="puni-btn">📖 ずかん</button>
+  </div>
+
+  <div id="feedback"></div>
+  <div id="exp-float"></div>
+  <div id="drop-banner"></div>
+  <div id="levelup-banner">⭐ レベルアップ！ ⭐</div>
+
+  <!-- 孵化オーバーレイ -->
+  <div id="hatch-overlay">
+    <div id="hatch-new-badge"><span class="nb-main">NEW!</span><span class="nb-sub">ずかんに とうろく！</span></div>
+    <div id="hatch-egg-stage"></div>
+    <div id="hatch-mon"></div>
+    <div id="hatch-text"></div>
+    <button id="hatch-close" class="puni-btn">やったー！</button>
+  </div>
+</div>
+
+<!-- 図鑑オーバーレイ（タイトル/ゲームどちらからも開ける・トップレベル） -->
+<div id="dex-overlay">
+  <div id="dex-window">
+    <div id="dex-header">
+      <span id="dex-title">📖 カンジモンずかん</span>
+      <span id="dex-progress">0 / 0</span>
+      <button id="dex-close" class="puni-btn blue">とじる</button>
+    </div>
+    <div id="dex-bar-wrap"><div id="dex-bar"></div></div>
+    <div id="dex-grid"><!-- JSで生成 --></div>
+  </div>
+</div>
+
+<div id="drop-egg"></div>
+<div id="rotate-hint"><span class="phone">📱</span>よこむきに してね！</div>
+
+<script>
+"use strict";
+/* =========================================================
+   カンジモン ベースシステム
+   - CSV読み込み（Googleスプレッドシート公開CSV）
+   - 4択クイズ（スライムが札を持つ）
+   - タイムボーナス / コンボ / EXP
+   - タマゴドロップ（コンボでドロップ率UP・4種）
+   - ふらん器（正解カウントダウンで孵化）
+   ========================================================= */
+
+/* ---------- 設定 ---------- */
+const CONFIG = {
+  questionTime : 10,      // タイムボーナス秒数
+  baseExp      : 50,      // 正解の基本EXP
+  timeExpMax   : 50,      // タイムボーナス最大EXP
+  baseDropRate : 0.08,    // タマゴ基本ドロップ率
+  comboDropUp  : 0.02,    // コンボ1ごとのドロップ率上昇
+  maxDropRate  : 0.35,    // ドロップ率上限
+  fireCombo    : 3,       // 炎演出が始まるコンボ数
+};
+
+/* タマゴの種類（孵化に必要な正解数・出やすさ） */
+const EGG_TYPES = {
+  white  : { label:"しろタマゴ",  need:9,  base:"#f7f3e8", spot:"#d9cfb6" },
+  red    : { label:"あかタマゴ",  need:12, base:"#ff8a80", spot:"#e53935" },
+  blue   : { label:"あおタマゴ",  need:15, base:"#81d4fa", spot:"#1e88e5" },
+  rainbow: { label:"にじタマゴ",  need:21, base:"url(#rainbowGrad)", spot:"#ffffff" },
+};
+
+/* 生まれるカンジモン（タマゴの種類ごとのプール）
+   ※ name は図鑑の同一判定キーにもなるので重複させないこと
+   ※ evo  … 同じ種を need 匹あつめると進化する先（第1進化）
+   ※ evo2 … さらに need 匹で最終進化する先（第2進化）
+     しきい値は cnt の累計（コモン: 3→6、レア: 2→4） */
+const MON_POOLS = {
+  white  : [ {name:"モジスラ", emoji:"🟢", desc:"もじが だいすきな みどりスライム。",
+               evo :{need:3, name:"モジドラ",   emoji:"🐲", desc:"もじを あやつる みどりの ドラゴン。"},
+               evo2:{need:6, name:"ダイモジオウ", emoji:"🦕", desc:"もじを きわめた でんせつの りゅうおう。"}},
+             {name:"フデコロ", emoji:"🐛", desc:"ふでを もって じを かく いもむし。",
+               evo :{need:3, name:"フデチョウ", emoji:"🦋", desc:"ふでさばき あざやかな ちょう。"},
+               evo2:{need:6, name:"マイフデ",   emoji:"🦚", desc:"ふでの まいを きわめた くじゃく。"}},
+             {name:"カキッパ", emoji:"🐤", desc:"かきとりが とくいな ちいさなとり。",
+               evo :{need:3, name:"カキドリ",   emoji:"🦅", desc:"みごとな じを かく だいせんしゅ。"},
+               evo2:{need:6, name:"ショウオウ", emoji:"🦉", desc:"うつくしい じを かく かしこい ふくろう。"}} ],
+  red    : [ {name:"ヒノカキ", emoji:"🦊", desc:"しっぽが ぽっと もえる げんきな きつね。",
+               evo :{need:3, name:"カエンコ",     emoji:"🐺", desc:"ほのおを まとう おおかみ。"},
+               evo2:{need:6, name:"ゴウエンロウ", emoji:"🐅", desc:"ほのおを きわめた でんせつの とら。"}},
+             {name:"モエルン", emoji:"🐹", desc:"やるきまんまんの あついハムスター。",
+               evo :{need:3, name:"モエグマ",       emoji:"🐻", desc:"やるきが もえあがる くま。"},
+               evo2:{need:6, name:"バクエンマンモ", emoji:"🦣", desc:"もえあがる ちからの きわみ、マンモス。"}},
+             {name:"アカジシ", emoji:"🦁", desc:"ほのおの たてがみを もつ おうさま。",
+               evo :{need:3, name:"グレンオウ",   emoji:"🐯", desc:"ほのおの おうの しんの すがた。"},
+               evo2:{need:6, name:"エンテイリュウ", emoji:"🦖", desc:"ほのおの おうが きわめた さいきょうの すがた。"}} ],
+  blue   : [ {name:"スイスイ", emoji:"🐬", desc:"うみを すいすい およぐ かしこいイルカ。",
+               evo :{need:3, name:"オオシオ",     emoji:"🐳", desc:"うみを おさめる おおきな くじら。"},
+               evo2:{need:6, name:"カイテイオウ", emoji:"🦈", desc:"うみを しはいする さめの おう。"}},
+             {name:"アオガメ", emoji:"🐢", desc:"ながいきの ものしりな カメはかせ。",
+               evo :{need:3, name:"ウミリュウ",     emoji:"🐊", desc:"うみの ぬしと よばれる りゅう。"},
+               evo2:{need:6, name:"カイリュウオウ", emoji:"🐉", desc:"うみの ぬしと なった りゅうおう。"}},
+             {name:"コオリン", emoji:"🐧", desc:"こおりのくにから きた ペンギン。",
+               evo :{need:3, name:"ユキドリ",   emoji:"🦢", desc:"こおりの つばさを もつ しろい とり。"},
+               evo2:{need:6, name:"コオリオウ", emoji:"🦭", desc:"こおりの うみを おさめる ぬし、あざらし。"}} ],
+  rainbow: [ {name:"ニジマル", emoji:"🦄", desc:"にじいろに かがやく まぼろしのユニコーン。",
+               evo :{need:2, name:"セイナウマ", emoji:"🐎", desc:"せいなる ひかりを はなつ うま。"},
+               evo2:{need:4, name:"セイテンバ", emoji:"🕊️", desc:"てんを かける せいなる つばさ。"}},
+             {name:"ヒカリュウ", emoji:"🐉", desc:"でんせつの ひかりかがやく ドラゴン。",
+               evo :{need:2, name:"コウテイリュウ", emoji:"🐲", desc:"てんを かける こうていの りゅう。"},
+               evo2:{need:4, name:"シンリュウ",     emoji:"🐉", desc:"うちゅうを すべる しんの りゅうおう。"}} ],
+};
+
+/* 図鑑用：全カンジモンを出現順にならべたリスト */
+const ALL_MONS = Object.entries(MON_POOLS)
+  .flatMap(([type, arr]) => arr.map(m => ({ ...m, eggType:type })));
+
+/* ============================================================
+   カンジモンの画像（Geminiなどで作った絵をここに貼るだけで差し替わる）
+   ・キー＝カンジモンの名前、値＝画像URL（https… または data:image…）
+   ・空文字 "" のままなら、これまでどおり絵文字で表示される（混在OK）
+   ・名前は全33体ユニーク。初期・1進化・最終進化すべてここに並べてある
+   ============================================================ */
+const MON_IMAGES = {
+  // ⚪ しろタマゴ系
+  "モジスラ":"images/mojisura.png", "モジドラ":"images/mojidora.png", "ダイモジオウ":"images/daimojiou.png",
+  "フデコロ":"images/fudekoro.png", "フデチョウ":"images/fudechou.png", "マイフデ":"images/maifude.png",
+  "カキッパ":"images/kakippa.png", "カキドリ":"images/kakidori.png", "ショウオウ":"images/shouou.png",
+  // 🔴 あかタマゴ系
+  "ヒノカキ":"images/hinokaki.png", "カエンコ":"images/kaenko.png", "ゴウエンロウ":"images/gouenrou.png",
+  "モエルン":"images/moerun.png", "モエグマ":"images/moeguma.png", "バクエンマンモ":"images/bakuenmanmo.png",
+  "アカジシ":"images/akajishi.png", "グレンオウ":"images/gurenou.png", "エンテイリュウ":"images/enteiryu.png",
+  // 🔵 あおタマゴ系
+  "スイスイ":"images/suisui.png", "オオシオ":"images/ooshio.png", "カイテイオウ":"images/kaiteiou.png",
+  "アオガメ":"images/aogame.png", "ウミリュウ":"images/umiryu.png", "カイリュウオウ":"images/kairyuou.png",
+  "コオリン":"images/koorin.png", "ユキドリ":"images/yukidori.png", "コオリオウ":"images/kooriou.png",
+  // 🌈 にじタマゴ系
+  "ニジマル":"images/nijimaru.png", "セイナウマ":"images/seinauma.png", "セイテンバ":"images/seitenba.png",
+  "ヒカリュウ":"images/hikaryu.png", "コウテイリュウ":"images/kouteiryu.png", "シンリュウ":"images/shinryu.png",
+};
+
+/* 名前から画像URLを返す（未設定なら ""） */
+function monImg(name){
+  const u = MON_IMAGES[name];
+  return (typeof u === "string") ? u.trim() : "";
+}
+/* カンジモンの見た目をHTMLで返す。画像があれば<img>、なければ絵文字
+   cls はラッパー要素に付くクラス名（CSSで画像/絵文字どちらもサイズ調整） */
+function monVisual(name, emoji, cls){
+  const url = monImg(name);
+  const inner = url
+    ? `<img class="mon-pic" src="${url}" alt="${name}" onerror="this.replaceWith(document.createTextNode('${emoji}'))">`
+    : emoji;
+  return `<span class="mon-visual ${cls||""}">${inner}</span>`;
+}
+
+/* スライム（選択肢モンスター）の色 */
+const SLIME_COLORS = [
+  { body:"#6fdc6f", dark:"#3aa83a" },
+  { body:"#6fb9ff", dark:"#2e7fd6" },
+  { body:"#ff9ad5", dark:"#e055a5" },
+  { body:"#ffd75e", dark:"#e0a210" },
+];
+
+/* ---------- サンプル問題（CSV未設定時） ----------
+   実運用では「実在しない誤字漢字」の画像URLをCSVで配信する。
+   プロトタイプでは似た漢字をSVGカードで代用している。 */
+const SAMPLE_QUESTIONS = [
+  { q:"「きいろ」の「き」", correct:"黄", wrongs:["横","英","苗"] },
+  { q:"「はれ」の かんじ", correct:"晴", wrongs:["清","精","静"] },
+  { q:"「うた」の かんじ", correct:"歌", wrongs:["欲","飲","軟"] },
+  { q:"「こめ」の かんじ", correct:"米", wrongs:["木","来","半"] },
+  { q:"「とり」の かんじ", correct:"鳥", wrongs:["烏","島","馬"] },
+  { q:"「かぜ」の かんじ", correct:"風", wrongs:["凪","嵐","凡"] },
+  { q:"「ゆき」の かんじ", correct:"雪", wrongs:["雲","電","雷"] },
+  { q:"「さかな」の かんじ", correct:"魚", wrongs:["漁","鮮","角"] },
+  { q:"「うま」の かんじ", correct:"馬", wrongs:["鳥","駅","焦"] },
+  { q:"「こころ」の かんじ", correct:"心", wrongs:["必","小","込"] },
+];
+
+/* ---------- ユーティリティ ---------- */
+const $ = (id) => document.getElementById(id);
+const shuffle = (arr) => { const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const rand = (min,max) => min + Math.random()*(max-min);
+
+/* 漢字1文字 → カード画像（SVGデータURI）。本番は画像URLに差し替え */
+function kanjiCardURI(ch){
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150">` +
+    `<rect width="150" height="150" rx="16" fill="#fffbe8"/>` +
+    `<text x="75" y="116" font-size="104" text-anchor="middle" font-family="serif" fill="#2b2417">${ch}</text></svg>`;
+  return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+}
+
+/* タマゴSVG（種類ごとに色違い・ヒビ段階 0〜2） */
+function eggSVG(type, crack=0){
+  const t = EGG_TYPES[type];
+  const cracks = [
+    "",
+    `<path d="M30 55 L40 48 L36 60 L48 53" stroke="#7a5a2a" stroke-width="3" fill="none" stroke-linecap="round"/>`,
+    `<path d="M22 58 L34 48 L30 62 L44 50 L40 66 L56 54" stroke="#7a5a2a" stroke-width="3.5" fill="none" stroke-linecap="round"/>`,
+  ];
+  return `<svg class="egg-svg" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="rainbowGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#ff6b6b"/><stop offset="25%" stop-color="#ffd93d"/>
+        <stop offset="50%" stop-color="#6bff8f"/><stop offset="75%" stop-color="#6bb5ff"/>
+        <stop offset="100%" stop-color="#c86bff"/>
+      </linearGradient>
+    </defs>
+    <ellipse cx="40" cy="92" rx="26" ry="6" fill="rgba(0,0,0,.18)"/>
+    <path d="M40 4 C62 4 74 36 74 60 C74 82 59 96 40 96 C21 96 6 82 6 60 C6 36 18 4 40 4 Z"
+      fill="${t.base}" stroke="#8a6a3a" stroke-width="2.5"/>
+    <circle cx="28" cy="40" r="6" fill="${t.spot}" opacity=".75"/>
+    <circle cx="52" cy="58" r="8" fill="${t.spot}" opacity=".75"/>
+    <circle cx="36" cy="74" r="5" fill="${t.spot}" opacity=".75"/>
+    <ellipse cx="30" cy="26" rx="9" ry="14" fill="rgba(255,255,255,.5)" transform="rotate(-18 30 26)"/>
+    ${cracks[crack] || ""}
+  </svg>`;
+}
+
+/* スライムSVG */
+function slimeSVG(color){
+  return `<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="50" cy="74" rx="38" ry="6" fill="rgba(0,0,0,.18)"/>
+    <path d="M50 8 C76 8 88 34 88 52 C88 68 72 76 50 76 C28 76 12 68 12 52 C12 34 24 8 50 8 Z"
+      fill="${color.body}" stroke="${color.dark}" stroke-width="3"/>
+    <ellipse cx="34" cy="22" rx="10" ry="7" fill="rgba(255,255,255,.55)" transform="rotate(-20 34 22)"/>
+    <circle cx="38" cy="46" r="6" fill="#222"/>
+    <circle cx="62" cy="46" r="6" fill="#222"/>
+    <circle cx="40" cy="44" r="2" fill="#fff"/>
+    <circle cx="64" cy="44" r="2" fill="#fff"/>
+    <path d="M42 60 Q50 67 58 60" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="26" cy="54" r="4.5" fill="rgba(255,120,140,.55)"/>
+    <circle cx="74" cy="54" r="4.5" fill="rgba(255,120,140,.55)"/>
+  </svg>`;
+}
+
+/* ---------- サウンド（WebAudioで生成） ---------- */
+const SoundFX = (() => {
+  let ctx = null;
+  const ac = () => ctx || (ctx = new (window.AudioContext||window.webkitAudioContext)());
+  function tone(freq, start, dur, type="square", vol=0.18){
+    const c = ac(), o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, c.currentTime + start);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + start + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(c.currentTime + start); o.stop(c.currentTime + start + dur + .05);
+  }
+  return {
+    unlock(){ try{ ac().resume(); }catch(e){} },
+    correct(){ tone(660,0,.12); tone(880,.1,.12); tone(1320,.2,.25,"square",.15); },
+    wrong(){ tone(220,0,.25,"sawtooth",.12); tone(165,.12,.35,"sawtooth",.12); },
+    combo(n){ const base=660+Math.min(n,8)*60; tone(base,0,.1); tone(base*1.5,.08,.15); },
+    eggDrop(){ tone(523,0,.1,"triangle",.2); tone(659,.1,.1,"triangle",.2); tone(784,.2,.1,"triangle",.2); tone(1046,.3,.3,"triangle",.22); },
+    crack(){ tone(180,0,.06,"square",.2); tone(140,.07,.06,"square",.2); },
+    hatch(){ [523,659,784,1046,1318].forEach((f,i)=>tone(f,i*.11,.2,"triangle",.2)); tone(1568,.55,.5,"triangle",.22); },
+    levelup(){ [392,523,659,784].forEach((f,i)=>tone(f,i*.09,.18,"square",.14)); },
+    newDex(){ [880,1175,1568].forEach((f,i)=>tone(f,i*.08,.16,"triangle",.18)); tone(1976,.24,.3,"triangle",.2); },
+    evolve(){ for(let i=0;i<8;i++) tone(440+i*90,i*.16,.14,"square",.1); },
+    tap(){ tone(880,0,.05,"sine",.1); },
+  };
+})();
+
+/* ---------- ゲーム状態 ---------- */
+const state = {
+  questions: [],        // {q, images:{correct, wrongs[]}}
+  order: [],            // 出題順
+  qIndex: 0,
+  questionNo: 1,
+  combo: 0,
+  exp: 0,
+  level: 1,
+  answering: false,
+  remainRatio: 1,
+  timerId: null,
+  timerStart: 0,
+  currentEgg: null,     // { type, left } ふらん器の中
+  eggQueue: [],         // 待ちタマゴ type[]
+  collection: [],       // {name, emoji, eggType}
+};
+
+/* ---------- セーブ／ロード ---------- */
+const SAVE_KEY = "kanjimon_save_v1";
+function save(){
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      exp:state.exp, level:state.level,
+      currentEgg:state.currentEgg, eggQueue:state.eggQueue,
+      collection:state.collection,
+    }));
+  } catch(e){}
+}
+function load(){
+  try {
+    const d = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (!d) return;
+    state.exp = d.exp||0; state.level = d.level||1;
+    state.currentEgg = d.currentEgg||null;
+    state.eggQueue = d.eggQueue||[];
+    state.collection = d.collection||[];
+  } catch(e){}
+}
+
+/* ---------- CSV読み込み ---------- */
+/* 形式: 問題文, 正解画像URL, 間違い画像URL1, 間違い画像URL2, 間違い画像URL3 */
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = "", inQ = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (inQ){
+      if (c === '"'){
+        if (text[i+1] === '"'){ field += '"'; i++; }
+        else inQ = false;
+      } else field += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(field); field=""; }
+      else if (c === '\n' || c === '\r'){
+        if (c === '\r' && text[i+1] === '\n') i++;
+        row.push(field); field="";
+        if (row.some(f=>f.trim()!=="")) rows.push(row);
+        row = [];
+      }
+      else field += c;
+    }
+  }
+  row.push(field);
+  if (row.some(f=>f.trim()!=="")) rows.push(row);
+  return rows;
+}
+
+function rowsToQuestions(rows){
+  const qs = [];
+  for (const r of rows){
+    if (r.length < 5) continue;
+    const [q, correct, w1, w2, w3] = r.map(s=>s.trim());
+    if (!q || !correct) continue;
+    // ヘッダー行らしき行はスキップ（2列目がURLでもdata:でもない & 1行目想定）
+    if (qs.length===0 && !/^(https?:|data:)/.test(correct)) continue;
+    qs.push({ q, images:{ correct, wrongs:[w1,w2,w3] } });
+  }
+  return qs;
+}
+
+async function loadQuestionsFromCSV(url){
+  const res = await fetch(url, { cache:"no-store" });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const text = await res.text();
+  const qs = rowsToQuestions(parseCSV(text));
+  if (qs.length === 0) throw new Error("有効な問題行がありません");
+  return qs;
+}
+
+function sampleQuestions(){
+  return SAMPLE_QUESTIONS.map(s => ({
+    q: s.q,
+    images: { correct: kanjiCardURI(s.correct), wrongs: s.wrongs.map(kanjiCardURI) },
+  }));
+}
+
+/* ---------- 画面遷移 ---------- */
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $(id).classList.add("active");
+}
+
+/* ---------- HUD更新 ---------- */
+const LEVEL_EXP = 300; // 1レベルに必要なEXP（ベース版は固定）
+function updateHUD(){
+  $("combo-num").textContent = state.combo;
+  $("combo-box").classList.toggle("fire", state.combo >= CONFIG.fireCombo);
+  $("lv-num").textContent = state.level;
+  $("exp-num").textContent = state.exp;
+  $("exp-bar").style.width = ((state.exp % LEVEL_EXP) / LEVEL_EXP * 100) + "%";
+  $("mon-count").textContent = state.collection.length;
+  $("mon-shelf").innerHTML = state.collection.slice(-12).map(m=>monVisual(m.name, m.emoji, "shelf")).join("");
+}
+
+function updateIncubator(){
+  const slot = $("egg-slot");
+  if (state.currentEgg){
+    slot.classList.remove("empty");
+    slot.innerHTML = eggSVG(state.currentEgg.type, state.currentEgg.left <= 1 ? 2 : (state.currentEgg.left <= Math.ceil(EGG_TYPES[state.currentEgg.type].need/2) ? 1 : 0));
+    $("hatch-count").innerHTML =
+      `${EGG_TYPES[state.currentEgg.type].label}<br>あと <span class="num">${state.currentEgg.left}</span> もん せいかいで<br>うまれる！`;
+  } else {
+    slot.classList.add("empty");
+    slot.innerHTML = eggSVG("white", 0);
+    $("hatch-count").innerHTML = "タマゴを<br>さがそう！";
+  }
+  $("egg-queue").textContent = `じゅんばんまち：${state.eggQueue.length}こ`;
+}
+
+/* ---------- 出題 ---------- */
+function buildMonsterRow(){
+  const row = $("monsters-row");
+  row.innerHTML = "";
+  for (let i=0;i<4;i++){
+    const btn = document.createElement("button");
+    btn.className = "mon-slot";
+    btn.innerHTML =
+      `<img class="choice-card" alt="せんたくし" src="https://via.placeholder.com/150">` +
+      `<div class="slime">${slimeSVG(SLIME_COLORS[i])}</div>`;
+    btn.addEventListener("click", ()=>onAnswer(btn));
+    row.appendChild(btn);
+  }
+}
+
+function nextQuestion(){
+  if (state.order.length === 0){
+    state.order = shuffle(state.questions.map((_,i)=>i));
+  }
+  state.qIndex = state.order.pop();
+  const q = state.questions[state.qIndex];
+
+  $("q-counter").textContent = `だい ${state.questionNo} もん`;
+  $("q-text").innerHTML = formatQuestion(q.q);
+
+  // 選択肢（正解1 + 間違い3）をシャッフルして配置
+  const choices = shuffle([
+    { src:q.images.correct, correct:true },
+    ...q.images.wrongs.map(w=>({ src:w, correct:false })),
+  ]);
+  document.querySelectorAll(".mon-slot").forEach((btn,i)=>{
+    btn.className = "mon-slot";
+    btn.disabled = false;
+    btn.dataset.correct = choices[i].correct ? "1" : "0";
+    const img = btn.querySelector("img");
+    img.src = choices[i].src;
+    img.onerror = () => { img.onerror=null; img.src = "https://via.placeholder.com/150?text=%3F"; };
+  });
+
+  state.answering = true;
+  startTimer();
+}
+
+/* 「きいろ」の「き」→ かぎかっこ内を強調表示 */
+function formatQuestion(text){
+  return text.replace(/「([^」]+)」/g, '「<span class="target">$1</span>」');
+}
+
+/* ---------- タイマー ---------- */
+/* resumeRatio を渡すと、その残り割合から再開する（図鑑などの一時停止用） */
+function startTimer(resumeRatio){
+  stopTimer();
+  const usedRatio = (typeof resumeRatio === "number") ? (1 - resumeRatio) : 0;
+  state.timerStart = performance.now() - usedRatio * CONFIG.questionTime * 1000;
+  const bar = $("time-bar");
+  const tick = (now) => {
+    const elapsed = (now - state.timerStart) / 1000;
+    const ratio = Math.max(0, 1 - elapsed / CONFIG.questionTime);
+    state.remainRatio = ratio;
+    bar.style.width = (ratio*100) + "%";
+    bar.className = ratio < .25 ? "danger" : (ratio < .55 ? "warn" : "");
+    if (ratio > 0 && state.answering) state.timerId = requestAnimationFrame(tick);
+  };
+  state.timerId = requestAnimationFrame(tick);
+}
+function stopTimer(){
+  if (state.timerId) cancelAnimationFrame(state.timerId);
+  state.timerId = null;
+}
+
+/* ---------- 解答処理 ---------- */
+function onAnswer(btn){
+  if (!state.answering) return;
+  state.answering = false;
+  stopTimer();
+  document.querySelectorAll(".mon-slot").forEach(b=>b.disabled=true);
+
+  const correct = btn.dataset.correct === "1";
+  if (correct) handleCorrect(btn);
+  else handleWrong(btn);
+}
+
+function handleCorrect(btn){
+  state.combo++;
+  const timeBonus = Math.round(CONFIG.timeExpMax * state.remainRatio);
+  const gained = CONFIG.baseExp + timeBonus;
+
+  btn.classList.add("correct-pick");
+  document.querySelectorAll(".mon-slot").forEach(b=>{ if(b!==btn) b.classList.add("dim"); });
+
+  SoundFX.correct();
+  if (state.combo >= 2) setTimeout(()=>SoundFX.combo(state.combo), 260);
+
+  showFeedback(pickGoodWord(), "good");
+  showExpFloat(`+${gained} EXP` + (timeBonus>=CONFIG.timeExpMax*0.7 ? " ⚡はやい！" : ""));
+  burstParticles(btn, state.combo >= CONFIG.fireCombo ? ["🔥","⭐","✨"] : ["⭐","✨","💫"]);
+
+  addExp(gained);
+
+  // ふらん器のタマゴカウントを進める
+  let hatching = false;
+  if (state.currentEgg){
+    state.currentEgg.left--;
+    $("egg-slot").classList.remove("wiggle");
+    void $("egg-slot").offsetWidth;
+    $("egg-slot").classList.add("wiggle");
+    if (state.currentEgg.left <= 0) hatching = true;
+  }
+  updateIncubator();
+  updateHUD();
+
+  // タマゴドロップ判定（コンボが高いほど確率UP）
+  const dropRate = Math.min(CONFIG.maxDropRate, CONFIG.baseDropRate + state.combo * CONFIG.comboDropUp);
+  const dropped = Math.random() < dropRate ? rollEggType() : null;
+
+  let delay = 1100;
+  if (dropped){ setTimeout(()=>playEggDrop(dropped, btn), 700); delay = 2500; }
+  save();
+
+  setTimeout(()=>{
+    if (hatching) playHatch();
+    else { state.questionNo++; nextQuestion(); }
+  }, delay);
+}
+
+function handleWrong(btn){
+  state.combo = 0;
+  btn.classList.add("wrong-pick");
+  // 正解を見せる
+  document.querySelectorAll(".mon-slot").forEach(b=>{
+    if (b.dataset.correct==="1") b.classList.add("reveal-correct");
+    else if (b!==btn) b.classList.add("dim");
+  });
+  SoundFX.wrong();
+  showFeedback("ざんねん…", "bad");
+  updateHUD();
+  save();
+  setTimeout(()=>{ state.questionNo++; nextQuestion(); }, 1800);
+}
+
+function pickGoodWord(){
+  if (state.combo >= 10) return `${state.combo}コンボ！！しんじられない！`;
+  if (state.combo >= 5)  return `${state.combo}コンボ！すごい！`;
+  if (state.combo >= 2)  return `${state.combo}コンボ！`;
+  return shuffle(["せいかい！","やったね！","すばらしい！"])[0];
+}
+
+/* ---------- EXP／レベル ---------- */
+function addExp(n){
+  const before = Math.floor(state.exp / LEVEL_EXP);
+  state.exp += n;
+  const after = Math.floor(state.exp / LEVEL_EXP);
+  if (after > before){
+    state.level = after + 1;
+    const b = $("levelup-banner");
+    b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
+    SoundFX.levelup();
+  }
+  updateHUD();
+}
+
+/* ---------- 演出 ---------- */
+function showFeedback(text, kind){
+  const f = $("feedback");
+  f.textContent = text;
+  f.className = "";
+  void f.offsetWidth;
+  f.classList.add(kind==="good" ? "show-good" : "show-bad");
+}
+function showExpFloat(text){
+  const f = $("exp-float");
+  f.textContent = text;
+  f.classList.remove("show"); void f.offsetWidth; f.classList.add("show");
+}
+
+function burstParticles(el, emojis){
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  for (let i=0;i<14;i++){
+    const p = document.createElement("div");
+    p.className = "particle";
+    p.textContent = emojis[i % emojis.length];
+    p.style.left = cx+"px"; p.style.top = cy+"px";
+    p.style.fontSize = rand(16,34)+"px";
+    document.body.appendChild(p);
+    const ang = rand(0, Math.PI*2), dist = rand(60,160);
+    const dx = Math.cos(ang)*dist, dy = Math.sin(ang)*dist - 50;
+    p.animate(
+      [ {transform:"translate(0,0) scale(1)", opacity:1},
+        {transform:`translate(${dx}px,${dy}px) scale(.4) rotate(${rand(-180,180)}deg)`, opacity:0} ],
+      { duration:rand(600,1000), easing:"cubic-bezier(.2,.8,.4,1)" }
+    ).onfinish = () => p.remove();
+  }
+}
+
+/* ---------- タマゴドロップ ---------- */
+function rollEggType(){
+  // コンボが高いほどレアが出やすい
+  const c = state.combo;
+  const r = Math.random();
+  const rainbowP = Math.min(0.03 + c*0.012, 0.18);
+  const blueP    = Math.min(0.12 + c*0.02, 0.30);
+  const redP     = Math.min(0.20 + c*0.02, 0.35);
+  if (r < rainbowP) return "rainbow";
+  if (r < rainbowP + blueP) return "blue";
+  if (r < rainbowP + blueP + redP) return "red";
+  return "white";
+}
+
+function playEggDrop(type, fromEl){
+  SoundFX.eggDrop();
+  const banner = $("drop-banner");
+  banner.textContent = `🥚 ${EGG_TYPES[type].label} を ひろった！`;
+  banner.classList.remove("show"); void banner.offsetWidth; banner.classList.add("show");
+
+  const egg = $("drop-egg");
+  egg.innerHTML = eggSVG(type, 0);
+  const from = fromEl.getBoundingClientRect();
+  const to = $("egg-slot").getBoundingClientRect();
+  egg.style.display = "block";
+  egg.style.left = "0px"; egg.style.top = "0px";
+  const sx = from.left + from.width/2 - 32, sy = from.top - 30;
+  const tx = to.left + to.width/2 - 32, ty = to.top + 10;
+  egg.animate(
+    [ { transform:`translate(${sx}px,${sy}px) scale(.3) rotate(0deg)`, opacity:0 },
+      { transform:`translate(${sx}px,${sy-90}px) scale(1.15) rotate(-12deg)`, opacity:1, offset:.3 },
+      { transform:`translate(${(sx+tx)/2}px,${Math.min(sy,ty)-130}px) scale(1) rotate(10deg)`, offset:.65 },
+      { transform:`translate(${tx}px,${ty}px) scale(.8) rotate(0deg)`, opacity:1 } ],
+    { duration:1500, easing:"cubic-bezier(.3,.7,.4,1)" }
+  ).onfinish = () => {
+    egg.style.display = "none";
+    obtainEgg(type);
+  };
+}
+
+function obtainEgg(type){
+  if (!state.currentEgg){
+    state.currentEgg = { type, left: EGG_TYPES[type].need };
+  } else {
+    state.eggQueue.push(type);
+  }
+  updateIncubator();
+  save();
+}
+
+/* ---------- 孵化 ---------- */
+function playHatch(){
+  const egg = state.currentEgg;
+  const overlay = $("hatch-overlay");
+  const stage = $("hatch-egg-stage");
+  const monEl = $("hatch-mon");
+  const textEl = $("hatch-text");
+  const closeBtn = $("hatch-close");
+
+  overlay.classList.add("active");
+  monEl.style.display = "none";
+  monEl.classList.remove("evolving","evolved-pop");
+  closeBtn.style.display = "none";
+  $("hatch-new-badge").classList.remove("show");
+  textEl.innerHTML = "おや……？ タマゴのようすが…！";
+  stage.style.display = "block";
+  stage.innerHTML = eggSVG(egg.type, 1);
+  stage.classList.add("shaking");
+  SoundFX.crack();
+
+  setTimeout(()=>{ stage.innerHTML = eggSVG(egg.type, 2); SoundFX.crack(); }, 900);
+  setTimeout(()=>{
+    stage.classList.remove("shaking");
+    stage.style.display = "none";
+
+    const pool = MON_POOLS[egg.type];
+    const mon = pool[Math.floor(Math.random()*pool.length)];
+    const countBefore = caughtCount(mon.name);     // pushする前のかず
+    const isNew = countBefore === 0;               // 初発見か
+    const pre  = stageForCount(mon, countBefore);     // いまの姿
+    const post = stageForCount(mon, countBefore + 1); // この1匹あとの姿
+    const evolvedNow = pre.stage !== post.stage;      // 進化のしきい値をまたいだ
+    state.collection.push({ name:mon.name, emoji:mon.emoji, eggType:egg.type });
+
+    monEl.innerHTML = monVisual(pre.name, pre.emoji, "hatch");
+    monEl.style.display = "block";
+    textEl.innerHTML = `<span id="hatch-name">${pre.name}</span><br>が ${isNew ? "うまれた" : "なかまに なった"}！`;
+    SoundFX.hatch();
+    burstParticles(monEl, egg.type==="rainbow" ? ["🌈","⭐","✨","💎"] : ["⭐","✨","🎉"]);
+
+    // はじめて出会ったカンジモンなら「ずかんに とうろく！」バッジ
+    if (isNew){
+      const badge = $("hatch-new-badge");
+      setTimeout(()=>{
+        badge.classList.add("show");
+        SoundFX.newDex();
+        burstParticles(badge, ["⭐","✨","💖"]);
+      }, 550);
+    }
+
+    // 次のタマゴをセット
+    state.currentEgg = null;
+    if (state.eggQueue.length > 0){
+      const t = state.eggQueue.shift();
+      state.currentEgg = { type:t, left:EGG_TYPES[t].need };
+    }
+    updateIncubator(); updateHUD(); save();
+
+    // 進化に到達したら、少し見せてから進化演出へ
+    if (evolvedNow){
+      setTimeout(()=> playEvolution(pre, post, ()=>{ closeBtn.style.display = "inline-block"; }), 1500);
+    } else {
+      closeBtn.style.display = "inline-block";
+    }
+  }, 1800);
+
+  closeBtn.onclick = () => {
+    SoundFX.tap();
+    overlay.classList.remove("active");
+    state.questionNo++;
+    nextQuestion();
+  };
+}
+
+/* 孵化オーバーレイ上で進化演出を再生（fromForm → toForm、hatch-monをそのまま使う） */
+function playEvolution(fromForm, toForm, onDone){
+  const monEl = $("hatch-mon");
+  const textEl = $("hatch-text");
+  const isFinal = (toForm.stage === 2);
+  $("hatch-new-badge").classList.remove("show");
+
+  textEl.innerHTML = `おや…？ ${fromForm.name}の ようすが…！`;
+  monEl.classList.remove("evolved-pop");
+  monEl.classList.add("evolving");          // 白くひかってブルブル
+  SoundFX.evolve();
+
+  setTimeout(()=>{
+    monEl.classList.remove("evolving");
+    monEl.innerHTML = monVisual(toForm.name, toForm.emoji, "hatch");
+    monEl.classList.add("evolved-pop");      // 進化形がポンッ
+    textEl.innerHTML = isFinal
+      ? `<span id="hatch-name">${toForm.name}</span><br>に さいしゅうしんか！🌟`
+      : `<span id="hatch-name">${toForm.name}</span><br>に しんかした！`;
+    SoundFX.hatch();
+    burstParticles(monEl, isFinal ? ["🌟","👑","✨","💫","🎉"] : ["🌟","✨","💫","🎉"]);
+    if (typeof onDone === "function") onDone();
+  }, 1700);
+}
+
+/* ---------- 図鑑 ---------- */
+/* タマゴ種類 → 図鑑の色ドット（CSS背景値） */
+function eggDotColor(type){
+  if (type === "rainbow")
+    return "conic-gradient(#ff6b6b,#ffd93d,#6bff8f,#6bb5ff,#c86bff,#ff6b6b)";
+  return EGG_TYPES[type].base;
+}
+/* なかまの捕獲数を name で数える（既存セーブをそのまま利用） */
+function caughtCount(name){
+  return state.collection.reduce((n,c)=> n + (c.name === name ? 1 : 0), 0);
+}
+/* 捕獲数 cnt のときの進化段階（0:基本 / 1:進化 / 2:最終）と姿を返す（純粋関数） */
+function stageForCount(m, cnt){
+  let form = m, stage = 0;
+  if (m.evo  && cnt >= m.evo.need ){ form = m.evo;  stage = 1; }
+  if (m.evo2 && cnt >= m.evo2.need){ form = m.evo2; stage = 2; }
+  let toEvo = 0;                         // 次の進化まであと何匹
+  if (stage === 0 && m.evo ) toEvo = m.evo.need  - cnt;
+  else if (stage === 1 && m.evo2) toEvo = m.evo2.need - cnt;
+  return { stage, form, name:form.name, emoji:form.emoji, desc:form.desc, toEvo };
+}
+/* いま図鑑に見せる姿（捕獲数から導出） */
+function monStage(m){
+  const cnt = caughtCount(m.name);
+  return { cnt, ...stageForCount(m, cnt) };
+}
+
+function renderDex(){
+  const got = ALL_MONS.filter(m => caughtCount(m.name) > 0).length;
+  const total = ALL_MONS.length;
+  $("dex-progress").textContent = `${got} / ${total}`;
+  $("dex-bar").style.width = (got / total * 100) + "%";
+
+  $("dex-grid").innerHTML = ALL_MONS.map(m => {
+    const s = monStage(m);
+    if (s.cnt === 0){
+      return `<div class="dex-card locked">
+        <div class="dex-emoji">❔</div>
+        <div class="dex-name">？？？</div>
+        <div class="dex-desc">まだ であって いない…</div>
+        <div class="dex-meta"><span class="dex-egg-dot" style="background:${eggDotColor(m.eggType)}"></span></div>
+      </div>`;
+    }
+    let evoLine = "", cardExtra = "";
+    if (s.stage === 2){
+      evoLine = `<div class="dex-evo final">🌟 さいしゅうしんか 🌟</div>`;
+      cardExtra = " evolved final";
+    } else if (s.stage === 1){
+      evoLine = `<div class="dex-evo">⭐ しんか ⭐</div>` +
+        (s.toEvo > 0 ? `<div class="dex-evo next">つぎまで あと ${s.toEvo}</div>` : "");
+      cardExtra = " evolved";
+    } else {
+      if (s.toEvo > 0) evoLine = `<div class="dex-evo next">しんかまで あと ${s.toEvo}</div>`;
+      if (s.cnt >= 2) cardExtra = " shine";
+    }
+    return `<div class="dex-card got${cardExtra}">
+      <div class="dex-emoji">${monVisual(s.name, s.emoji, "dex")}</div>
+      <div class="dex-name">${s.name}</div>
+      <div class="dex-desc">${s.desc}</div>
+      ${evoLine}
+      <div class="dex-meta">
+        <span class="dex-egg-dot" style="background:${eggDotColor(m.eggType)}"></span>
+        <span class="dex-count">×${s.cnt}</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  fitDexNames();
+}
+
+/* 長い名前がカードからはみ出すとき、収まるまでフォントを少し縮める */
+function fitDexNames(){
+  document.querySelectorAll("#dex-grid .dex-name").forEach(el => {
+    el.style.fontSize = "";          // CSS既定（16px）に戻す
+    if (!el.clientWidth) return;     // 非表示なら計測不可
+    let size = 16, guard = 0;
+    while (el.scrollWidth > el.clientWidth && size > 9 && guard < 24){
+      size -= 1; el.style.fontSize = size + "px"; guard++;
+    }
+  });
+}
+
+function openDex(){
+  SoundFX.tap();
+  // クイズ中なら、タイマーを一時停止
+  if (state.answering) stopTimer();
+  $("dex-overlay").classList.add("active"); // 先に表示してから描画（名前フィット計測のため）
+  renderDex();
+}
+function closeDex(){
+  SoundFX.tap();
+  $("dex-overlay").classList.remove("active");
+  // クイズ中だった場合は残り時間から再開
+  if (state.answering) startTimer(state.remainRatio);
+}
+
+/* ---------- 起動 ---------- */
+async function startGame(useSample){
+  SoundFX.unlock();
+  const status = $("csv-status");
+  const url = $("csv-url").value.trim();
+  status.className = ""; status.textContent = "";
+
+  if (!useSample && url){
+    status.textContent = "📡 もんだいを よみこみちゅう…";
+    try {
+      state.questions = await loadQuestionsFromCSV(url);
+      localStorage.setItem("kanjimon_csv_url", url);
+      status.textContent = `✅ ${state.questions.length}もん よみこみました！`;
+    } catch(e){
+      status.className = "err";
+      status.textContent = `⚠️ よみこめませんでした（${e.message}）。サンプルもんだいで はじめます。`;
+      state.questions = sampleQuestions();
+      await new Promise(r=>setTimeout(r,1200));
+    }
+  } else {
+    state.questions = sampleQuestions();
+  }
+
+  state.order = [];
+  state.questionNo = 1;
+  state.combo = 0;
+
+  buildMonsterRow();
+  updateHUD();
+  updateIncubator();
+  showScreen("game-screen");
+  nextQuestion();
+}
+
+window.addEventListener("DOMContentLoaded", ()=>{
+  load();
+  const savedURL = localStorage.getItem("kanjimon_csv_url");
+  if (savedURL) $("csv-url").value = savedURL;
+  $("start-btn").addEventListener("click", ()=>startGame(false));
+  $("sample-btn").addEventListener("click", ()=>startGame(true));
+  $("dex-btn").addEventListener("click", openDex);
+  $("title-dex-btn").addEventListener("click", openDex);
+  $("dex-close").addEventListener("click", closeDex);
+});
+</script>
+</body>
+</html>
