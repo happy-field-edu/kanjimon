@@ -391,6 +391,95 @@
   }
   #levelup-banner.show { animation:popBanner 1.6s ease forwards; }
 
+  /* ============ ★ ボス襲来イベント（ここに追加）============ */
+  /* WARNING!! 警告オーバーレイ（赤黒フラッシュ） */
+  #boss-warning {
+    position:absolute; inset:0; z-index:90; display:none;
+    align-items:center; justify-content:center; text-align:center;
+  }
+  #boss-warning.show { display:flex; animation:bossWarnBg 2.2s steps(1) forwards; }
+  @keyframes bossWarnBg {
+    0%,100%{ background:rgba(120,0,0,0); }
+    8%,24%,40%,56%{ background:rgba(140,0,0,.85); }
+    16%,32%,48%,64%{ background:rgba(10,0,0,.9); }
+    72%,99%{ background:rgba(60,0,0,.78); }
+  }
+  #boss-warning .bw-text {
+    font-size:min(13vw,90px); font-weight:900; color:#fff; letter-spacing:2px;
+    text-shadow:0 0 18px #ff2a2a, 0 0 6px #ff0000, 0 4px 0 #5a0000;
+    animation:bossWarnText 2.2s ease;
+  }
+  #boss-warning .bw-text span { font-size:.42em; color:#ffd54a; display:inline-block; margin-top:6px; }
+  @keyframes bossWarnText {
+    0%{ transform:scale(.2); opacity:0; }
+    14%{ transform:scale(1.15); opacity:1; }
+    20%,80%{ transform:scale(1) translateX(0); }
+    24%{ transform:translateX(-10px); } 28%{ transform:translateX(9px); }
+    32%{ transform:translateX(-7px); } 36%{ transform:translateX(5px); } 40%{ transform:translateX(0); }
+    100%{ transform:scale(1.04); opacity:0; }
+  }
+
+  /* ボス本体＆HPバー */
+  #boss-stage {
+    position:absolute; top:31%; left:50%; transform:translateX(-50%);
+    z-index:24; display:none; flex-direction:column; align-items:center; gap:6px;
+    pointer-events:none;
+  }
+  #boss-stage.show { display:flex; animation:bossEnter .6s cubic-bezier(.2,1.5,.4,1); }
+  @keyframes bossEnter { from{ transform:translateX(-50%) scale(.5); opacity:0; } to{ opacity:1; } }
+  #boss-hp-wrap {
+    background:rgba(20,0,0,.66); border:2px solid #ff5a5a; border-radius:12px;
+    padding:3px 10px; min-width:200px; text-align:center;
+  }
+  #boss-hp-label { font-size:12px; font-weight:900; color:#ffd0d0; }
+  #boss-hp-gauge { height:14px; background:rgba(0,0,0,.5); border-radius:7px; overflow:hidden; margin-top:2px; }
+  #boss-hp-bar { height:100%; width:100%; border-radius:7px;
+    background:linear-gradient(90deg,#ff2a2a,#ff7a3a); transition:width .4s; }
+  #boss-img { position:relative; width:104px; height:104px;
+    display:flex; align-items:center; justify-content:center;
+    filter:drop-shadow(0 0 16px rgba(255,40,40,.7));
+    animation:bossFloat 1.8s ease-in-out infinite; }
+  #boss-img img { width:104px; height:104px; object-fit:contain; }
+  #boss-img .boss-emoji { display:none; font-size:88px; line-height:1; }
+  #boss-img.noimg .boss-emoji { display:block; }   /* 画像が無ければ絵文字 */
+  @keyframes bossFloat { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
+  #boss-img.hit { animation:bossHitShake .3s; }
+  @keyframes bossHitShake {
+    0%,100%{ transform:translateX(0); filter:drop-shadow(0 0 16px rgba(255,40,40,.7)); }
+    25%{ transform:translateX(-8px); filter:brightness(3) drop-shadow(0 0 18px #fff); }
+    75%{ transform:translateX(8px); filter:brightness(3) drop-shadow(0 0 18px #fff); }
+  }
+  #boss-img.boss-defeated { animation:bossDefeat 1.3s ease forwards; }
+  @keyframes bossDefeat {
+    0%{ transform:scale(1) rotate(0); opacity:1; }
+    30%{ transform:scale(1.15) rotate(-8deg); filter:brightness(2.5); }
+    100%{ transform:scale(.2) rotate(40deg); opacity:0; }
+  }
+
+  /* ボス戦中の赤いふんいき（バトルエリアのふち） */
+  #game-screen.boss-mode #battle-area { animation:bossVignette 1.4s ease-in-out infinite; }
+  @keyframes bossVignette {
+    0%,100%{ box-shadow:inset 0 0 60px 8px rgba(180,0,0,.35); }
+    50%{ box-shadow:inset 0 0 90px 18px rgba(220,0,0,.6); }
+  }
+  /* ボスの攻撃（不正解時）赤フラッシュ＋シェイク */
+  #game-screen.boss-attack #battle-area { animation:bossAttackFx .6s ease; }
+  @keyframes bossAttackFx {
+    0%{ background:rgba(220,0,0,.0); transform:translateX(0); }
+    15%{ background:rgba(220,0,0,.45); transform:translateX(-12px); }
+    30%{ transform:translateX(11px); } 45%{ transform:translateX(-8px); }
+    60%{ transform:translateX(6px); } 100%{ background:rgba(220,0,0,0); transform:translateX(0); }
+  }
+
+  /* デバッグ用ボタン（画面すみ・控えめ） */
+  #boss-debug-btn {
+    position:fixed; left:8px; bottom:8px; z-index:95;
+    width:38px; height:38px; border-radius:50%; border:2px solid rgba(255,255,255,.6);
+    background:rgba(120,0,0,.55); color:#fff; font-size:18px; cursor:pointer;
+    opacity:.4; transition:opacity .2s;
+  }
+  #boss-debug-btn:hover { opacity:1; }
+
   /* 縦画面のとき */
   #rotate-hint {
     position:fixed; inset:0; z-index:99; display:none;
@@ -466,6 +555,24 @@
   <div id="drop-banner"></div>
   <div id="levelup-banner">⭐ レベルアップ！ ⭐</div>
 
+  <!-- ★ ボス襲来：本体＋HPバー（ここに追加） -->
+  <div id="boss-stage">
+    <div id="boss-hp-wrap">
+      <span id="boss-hp-label">ボス HP</span>
+      <div id="boss-hp-gauge"><div id="boss-hp-bar"></div></div>
+    </div>
+    <div id="boss-img">
+      <img src="images/boss_01.png" alt="ボス"
+           onerror="this.style.display='none';this.parentNode.classList.add('noimg');">
+      <span class="boss-emoji">👹</span>
+    </div>
+  </div>
+
+  <!-- ★ ボス襲来：WARNING警告演出（ここに追加） -->
+  <div id="boss-warning">
+    <div class="bw-text">WARNING!!<br><span>ボスが あらわれた！</span></div>
+  </div>
+
   <!-- 孵化オーバーレイ -->
   <div id="hatch-overlay">
     <div id="hatch-new-badge"><span class="nb-main">NEW!</span><span class="nb-sub">ずかんに とうろく！</span></div>
@@ -492,6 +599,9 @@
 <div id="drop-egg"></div>
 <div id="rotate-hint"><span class="phone">📱</span>よこむきに してね！</div>
 
+<!-- ★ デバッグ用：ボス強制発動の隠しボタン（ここに追加） -->
+<button id="boss-debug-btn" title="ボス戦を強制発動（テスト用）">👹</button>
+
 <script>
 "use strict";
 /* =========================================================
@@ -512,6 +622,12 @@ const CONFIG = {
   comboDropUp  : 0.02,    // コンボ1ごとのドロップ率上昇
   maxDropRate  : 0.35,    // ドロップ率上限
   fireCombo    : 3,       // 炎演出が始まるコンボ数
+  // ▼▼ ボス襲来イベント設定（ここに追加）▼▼
+  bossEvery    : 10,      // 何問ごとにボス判定するか
+  bossNeed     : 3,       // ニガテがこの数たまっていたら発動
+  bossHP       : 3,       // ボスのHP（正解でこの回数ダメージ→撃破）
+  bossPenalty  : 0.45,    // ボス戦で不正解した次の問題のタイム開始割合（攻撃ペナルティ）
+  // ▲▲ ここまで追加 ▲▲
 };
 
 /* タマゴの種類（孵化に必要な正解数・出やすさ） */
@@ -520,6 +636,8 @@ const EGG_TYPES = {
   red    : { label:"あかタマゴ",  need:12, base:"#ff8a80", spot:"#e53935" },
   blue   : { label:"あおタマゴ",  need:15, base:"#81d4fa", spot:"#1e88e5" },
   rainbow: { label:"にじタマゴ",  need:21, base:"url(#rainbowGrad)", spot:"#ffffff" },
+  // ▼ ボス撃破でのみ手に入る「超レアタマゴ」（ここに追加）
+  rare   : { label:"レアタマゴ",  need:6,  base:"url(#rareGrad)", spot:"#fff3b0" },
 };
 
 /* 生まれるカンジモン（タマゴの種類ごとのプール）
@@ -561,6 +679,9 @@ const MON_POOLS = {
              {name:"ヒカリュウ", emoji:"🐉", desc:"でんせつの ひかりかがやく ドラゴン。",
                evo :{need:2, name:"コウテイリュウ", emoji:"🐲", desc:"てんを かける こうていの りゅう。"},
                evo2:{need:4, name:"シンリュウ",     emoji:"🐉", desc:"うちゅうを すべる しんの りゅうおう。"}} ],
+  // ▼ ボス撃破のレアタマゴからのみ生まれる特別なカンジモン（ここに追加）
+  rare   : [ {name:"オウゴンマル", emoji:"🟡", desc:"ボスを たおすと あらわれる おうごんの モンスター。"},
+             {name:"ヒカリオウ",   emoji:"🌟", desc:"ボスせんでしか であえない ひかりの おう。"} ],
 };
 
 /* 図鑑用：全カンジモンを出現順にならべたリスト */
@@ -659,6 +780,10 @@ function eggSVG(type, crack=0){
         <stop offset="50%" stop-color="#6bff8f"/><stop offset="75%" stop-color="#6bb5ff"/>
         <stop offset="100%" stop-color="#c86bff"/>
       </linearGradient>
+      <linearGradient id="rareGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#fff7c2"/><stop offset="45%" stop-color="#ffd24a"/>
+        <stop offset="100%" stop-color="#ff9d00"/>
+      </linearGradient>
     </defs>
     <ellipse cx="40" cy="92" rx="26" ry="6" fill="rgba(0,0,0,.18)"/>
     <path d="M40 4 C62 4 74 36 74 60 C74 82 59 96 40 96 C21 96 6 82 6 60 C6 36 18 4 40 4 Z"
@@ -712,6 +837,10 @@ const SoundFX = (() => {
     newDex(){ [880,1175,1568].forEach((f,i)=>tone(f,i*.08,.16,"triangle",.18)); tone(1976,.24,.3,"triangle",.2); },
     evolve(){ for(let i=0;i<8;i++) tone(440+i*90,i*.16,.14,"square",.1); },
     tap(){ tone(880,0,.05,"sine",.1); },
+    // ▼ ボス用サウンド（ここに追加）
+    bossAppear(){ [110,104,98,92].forEach((f,i)=>tone(f,i*.18,.3,"sawtooth",.18)); tone(60,0,.9,"sawtooth",.14); },
+    bossHit(){ tone(300,0,.08,"square",.2); tone(160,.05,.18,"sawtooth",.18); },
+    bossDown(){ [392,523,659,784,1046].forEach((f,i)=>tone(f,i*.12,.25,"triangle",.2)); tone(1568,.6,.6,"triangle",.22); },
   };
 })();
 
@@ -731,6 +860,14 @@ const state = {
   currentEgg: null,     // { type, left } ふらん器の中
   eggQueue: [],         // 待ちタマゴ type[]
   collection: [],       // {name, emoji, eggType}
+  // ▼ ボス襲来イベント用（ここに追加）
+  weakList: [],         // ニガテ漢字（問題文 q のリスト）
+  bossActive: false,    // ボス戦中か
+  bossHP: 0,            // ボスの残りHP
+  bossMaxHP: 0,
+  bossCurrentQ: null,   // ボス戦で今出している問題
+  bossNextStartRatio: null, // 次の問題のタイム開始割合（攻撃ペナルティ用）
+  // ▲ ここまで追加 ▲
 };
 
 /* ---------- セーブ／ロード ---------- */
@@ -741,6 +878,7 @@ function save(){
       exp:state.exp, level:state.level,
       currentEgg:state.currentEgg, eggQueue:state.eggQueue,
       collection:state.collection,
+      weakList:state.weakList,           // ニガテリストも保存（ここに追加）
     }));
   } catch(e){}
 }
@@ -752,6 +890,7 @@ function load(){
     state.currentEgg = d.currentEgg||null;
     state.eggQueue = d.eggQueue||[];
     state.collection = d.collection||[];
+    state.weakList = d.weakList||[];     // ニガテリストの復元（ここに追加）
   } catch(e){}
 }
 
@@ -861,17 +1000,9 @@ function buildMonsterRow(){
   }
 }
 
-function nextQuestion(){
-  if (state.order.length === 0){
-    state.order = shuffle(state.questions.map((_,i)=>i));
-  }
-  state.qIndex = state.order.pop();
-  const q = state.questions[state.qIndex];
-
-  $("q-counter").textContent = `だい ${state.questionNo} もん`;
+/* 問題1問を看板＆4体に描画（通常・ボス共通：ここに追加） */
+function renderQuestion(q){
   $("q-text").innerHTML = formatQuestion(q.q);
-
-  // 選択肢（正解1 + 間違い3）をシャッフルして配置
   const choices = shuffle([
     { src:q.images.correct, correct:true },
     ...q.images.wrongs.map(w=>({ src:w, correct:false })),
@@ -884,9 +1015,165 @@ function nextQuestion(){
     img.src = choices[i].src;
     img.onerror = () => { img.onerror=null; img.src = "https://via.placeholder.com/150?text=%3F"; };
   });
+}
 
+function nextQuestion(){
+  if (state.order.length === 0){
+    state.order = shuffle(state.questions.map((_,i)=>i));
+  }
+  state.qIndex = state.order.pop();
+  const q = state.questions[state.qIndex];
+  $("q-counter").textContent = `だい ${state.questionNo} もん`;
+  renderQuestion(q);
   state.answering = true;
   startTimer();
+}
+
+/* ===== ニガテリスト＆ボス判定（ここに追加） ===== */
+function currentQ(){ return state.questions[state.qIndex]; }
+function recordWeak(qText){ if (qText && !state.weakList.includes(qText)) state.weakList.push(qText); }
+function removeWeak(qText){ state.weakList = state.weakList.filter(x => x !== qText); }
+/* 今の問題セットに存在するニガテ問題だけを返す */
+function weakQuestions(){ return state.questions.filter(qq => state.weakList.includes(qq.q)); }
+
+/* 1問おわるごとに呼ぶ：ボス発動条件を判定してから次へ */
+function advanceQuestion(){
+  state.questionNo++;
+  const clearedCount = state.questionNo - 1; // クリアした問題数
+  if (!state.bossActive
+      && clearedCount > 0
+      && clearedCount % CONFIG.bossEvery === 0
+      && weakQuestions().length >= CONFIG.bossNeed){
+    startBoss();
+  } else {
+    nextQuestion();
+  }
+}
+
+/* ============================================================
+   ★ ボス襲来イベント（ここから一式を追加）★
+   ============================================================ */
+function startBoss(){
+  state.bossActive = true;
+  state.bossMaxHP = CONFIG.bossHP;
+  state.bossHP = CONFIG.bossHP;
+  state.bossNextStartRatio = null;
+  stopTimer(); state.answering = false;
+  SoundFX.bossAppear();
+
+  // 「WARNING!!」警告演出 → 赤黒フラッシュ
+  const warn = $("boss-warning");
+  warn.classList.remove("show"); void warn.offsetWidth; warn.classList.add("show");
+  $("game-screen").classList.add("boss-mode");
+
+  setTimeout(()=>{
+    warn.classList.remove("show");
+    $("boss-stage").classList.add("show");  // ボス本体＆HPバーを表示
+    updateBossHP(false);
+    nextBossQuestion();
+  }, 2200);
+}
+
+/* ボス戦の1問（ニガテから優先出題） */
+function nextBossQuestion(){
+  const weak = weakQuestions();
+  let q;
+  if (weak.length){
+    q = weak[Math.floor(Math.random()*weak.length)];
+  } else {
+    // ニガテを全部やっつけたら通常問題で追い打ち
+    if (state.order.length === 0) state.order = shuffle(state.questions.map((_,i)=>i));
+    q = state.questions[state.order.pop()];
+  }
+  state.bossCurrentQ = q;
+  $("q-counter").textContent = `⚔️ ボスせん！ のこりHP ${state.bossHP}`;
+  renderQuestion(q);
+  state.answering = true;
+  const r = state.bossNextStartRatio; state.bossNextStartRatio = null;
+  startTimer(typeof r === "number" ? r : undefined);  // 攻撃ペナルティがあれば短いゲージで開始
+}
+
+function handleBossAnswer(btn){
+  const correct = btn.dataset.correct === "1";
+  if (correct){
+    btn.classList.add("correct-pick");
+    document.querySelectorAll(".mon-slot").forEach(b=>{ if(b!==btn) b.classList.add("dim"); });
+    SoundFX.correct();
+    showFeedback("こうげき せいこう！", "good");
+    burstParticles(btn, ["⚔️","💥","⭐","✨"]);
+    removeWeak(state.bossCurrentQ.q);        // ★ 正解した漢字はニガテから削除
+    state.bossHP--;
+    updateBossHP(true);                       // ダメージ演出
+    addExp(CONFIG.baseExp);
+    save();
+    setTimeout(()=>{
+      if (state.bossHP <= 0) bossDefeated();
+      else nextBossQuestion();
+    }, 1200);
+  } else {
+    state.combo = 0;
+    btn.classList.add("wrong-pick");
+    document.querySelectorAll(".mon-slot").forEach(b=>{
+      if (b.dataset.correct==="1") b.classList.add("reveal-correct");
+      else if (b!==btn) b.classList.add("dim");
+    });
+    SoundFX.wrong();
+    showFeedback("ボスの こうげき！", "bad");
+    bossAttackEffect();                        // 画面が赤くゆれる
+    state.bossNextStartRatio = CONFIG.bossPenalty; // 次の問題はタイムが大きく減る
+    updateHUD();
+    save();
+    setTimeout(()=> nextBossQuestion(), 1600);
+  }
+}
+
+function updateBossHP(damage){
+  const hp = Math.max(0, state.bossHP);
+  $("boss-hp-bar").style.width = (hp / state.bossMaxHP * 100) + "%";
+  $("boss-hp-label").textContent = `ボス HP ${hp} / ${state.bossMaxHP}`;
+  if (damage){
+    const img = $("boss-img");
+    img.classList.remove("hit"); void img.offsetWidth; img.classList.add("hit");
+    SoundFX.bossHit();
+  }
+}
+
+function bossAttackEffect(){
+  const gs = $("game-screen");
+  gs.classList.remove("boss-attack"); void gs.offsetWidth; gs.classList.add("boss-attack");
+  setTimeout(()=> gs.classList.remove("boss-attack"), 650);
+}
+
+/* 撃破 → 確定で超レアタマゴドロップ */
+function bossDefeated(){
+  state.bossActive = false;
+  $("q-counter").textContent = "⚔️ ボスを たおした！";
+  showFeedback("ボス げきは！！", "good");
+  SoundFX.bossDown();
+  const img = $("boss-img");
+  burstParticles(img, ["💥","🔥","⭐","✨","🎉"]);
+  img.classList.add("boss-defeated");
+  $("game-screen").classList.remove("boss-mode");
+
+  setTimeout(()=>{
+    playEggDrop("rare", img, false);                 // 見た目（ボス→ふらん器へ飛ぶ）
+    setTimeout(()=>{ obtainEgg("rare"); }, 1500);    // ★ アニメに依存せず確実にレアタマゴ入手
+    setTimeout(()=>{
+      $("boss-stage").classList.remove("show");
+      img.classList.remove("boss-defeated");
+      save();
+      nextQuestion();   // 通常クイズへ復帰
+    }, 2000);
+  }, 1400);
+}
+
+/* デバッグ：ボス強制発動（ニガテが無ければテスト用に詰める） */
+function forceBoss(){
+  if (state.bossActive) return;
+  if (weakQuestions().length === 0){
+    state.questions.slice(0,3).forEach(qq => recordWeak(qq.q));
+  }
+  startBoss();
 }
 
 /* 「きいろ」の「き」→ かぎかっこ内を強調表示 */
@@ -922,6 +1209,8 @@ function onAnswer(btn){
   state.answering = false;
   stopTimer();
   document.querySelectorAll(".mon-slot").forEach(b=>b.disabled=true);
+
+  if (state.bossActive){ handleBossAnswer(btn); return; }  // ボス戦は専用処理へ（ここに追加）
 
   const correct = btn.dataset.correct === "1";
   if (correct) handleCorrect(btn);
@@ -967,12 +1256,13 @@ function handleCorrect(btn){
 
   setTimeout(()=>{
     if (hatching) playHatch();
-    else { state.questionNo++; nextQuestion(); }
+    else advanceQuestion();   // ← ボス判定を通す（変更）
   }, delay);
 }
 
 function handleWrong(btn){
   state.combo = 0;
+  recordWeak(currentQ().q);   // ← まちがえた漢字をニガテリストへ記録（ここに追加）
   btn.classList.add("wrong-pick");
   // 正解を見せる
   document.querySelectorAll(".mon-slot").forEach(b=>{
@@ -983,7 +1273,7 @@ function handleWrong(btn){
   showFeedback("ざんねん…", "bad");
   updateHUD();
   save();
-  setTimeout(()=>{ state.questionNo++; nextQuestion(); }, 1800);
+  setTimeout(()=>{ advanceQuestion(); }, 1800);   // ← ボス判定を通す（変更）
 }
 
 function pickGoodWord(){
@@ -1055,7 +1345,7 @@ function rollEggType(){
   return "white";
 }
 
-function playEggDrop(type, fromEl){
+function playEggDrop(type, fromEl, doObtain=true){  // doObtain=false で見た目だけ（変更）
   SoundFX.eggDrop();
   const banner = $("drop-banner");
   banner.textContent = `🥚 ${EGG_TYPES[type].label} を ひろった！`;
@@ -1077,7 +1367,7 @@ function playEggDrop(type, fromEl){
     { duration:1500, easing:"cubic-bezier(.3,.7,.4,1)" }
   ).onfinish = () => {
     egg.style.display = "none";
-    obtainEgg(type);
+    if (doObtain) obtainEgg(type);
   };
 }
 
@@ -1160,8 +1450,7 @@ function playHatch(){
   closeBtn.onclick = () => {
     SoundFX.tap();
     overlay.classList.remove("active");
-    state.questionNo++;
-    nextQuestion();
+    advanceQuestion();   // ← ボス判定を通す（変更）
   };
 }
 
@@ -1195,6 +1484,8 @@ function playEvolution(fromForm, toForm, onDone){
 function eggDotColor(type){
   if (type === "rainbow")
     return "conic-gradient(#ff6b6b,#ffd93d,#6bff8f,#6bb5ff,#c86bff,#ff6b6b)";
+  if (type === "rare")  // レアタマゴは金色（ここに追加）
+    return "linear-gradient(#fff7c2,#ffd24a,#ff9d00)";
   return EGG_TYPES[type].base;
 }
 /* なかまの捕獲数を name で数える（既存セーブをそのまま利用） */
@@ -1312,6 +1603,10 @@ async function startGame(useSample){
   state.order = [];
   state.questionNo = 1;
   state.combo = 0;
+  state.bossActive = false;            // ボス状態リセット（ここに追加）
+  state.bossNextStartRatio = null;
+  $("boss-stage").classList.remove("show");
+  $("game-screen").classList.remove("boss-mode");
 
   buildMonsterRow();
   updateHUD();
@@ -1329,6 +1624,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
   $("dex-btn").addEventListener("click", openDex);
   $("title-dex-btn").addEventListener("click", openDex);
   $("dex-close").addEventListener("click", closeDex);
+  $("boss-debug-btn").addEventListener("click", forceBoss);  // デバッグ：ボス強制発動（ここに追加）
 });
 </script>
 </body>
