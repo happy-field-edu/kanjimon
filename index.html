@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>カンジモン 〜漢字島クイズ〜</title>
+<!-- 紙吹雪ライブラリ（読み込めなくても絵文字エフェクトで動く）：ここに追加 -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <style>
   /* ===============================
      カンジモン ベースシステム v0.1
@@ -449,6 +451,12 @@
   #badge-popup .bp-icon { font-size:30px; }
   #badge-popup .bp-name { font-size:20px; font-weight:900; color:#7a3b00; }
 
+  /* 紙吹雪キャンバス（最前面・操作は透過）：ここに追加 */
+  #confetti-canvas {
+    position:fixed; inset:0; width:100%; height:100%;
+    pointer-events:none; z-index:200;
+  }
+
   /* ---- レベルアップ ---- */
   #levelup-banner {
     position:absolute; left:0; right:0; top:14%; text-align:center; pointer-events:none; z-index:55;
@@ -679,6 +687,9 @@
 
 <!-- ★ バッジ獲得ポップアップ（ここに追加） -->
 <div id="badge-popup"></div>
+
+<!-- ★ 紙吹雪用キャンバス（最前面・ここに追加） -->
+<canvas id="confetti-canvas"></canvas>
 
 <div id="drop-egg"></div>
 <div id="rotate-hint"><span class="phone">📱</span>よこむきに してね！</div>
@@ -1428,6 +1439,36 @@ function burstParticles(el, emojis){
   }
 }
 
+/* ---------- ★ リッチな紙吹雪エフェクト（ここに追加）---------- */
+let _confetti = null;
+function getConfetti(){
+  if (_confetti) return _confetti;
+  if (!window.confetti) return null;   // CDNが読めなければ無効（絵文字で代替）
+  _confetti = window.confetti.create($("confetti-canvas"), { resize:true, useWorker:true });
+  return _confetti;
+}
+/* big=true で最終進化などの特大バージョン */
+function richConfetti(big){
+  const fc = getConfetti();
+  if (!fc) return;
+  const colors = ["#ff6b6b","#ffd93d","#6bff8f","#6bb5ff","#c86bff","#ff9d00","#ffffff"];
+  const fire = (o)=> fc(Object.assign({ colors, disableForReducedMotion:false }, o));
+  // 中央から星＆紙吹雪
+  fire({ particleCount: big?90:55, spread:110, startVelocity:48, origin:{x:.5,y:.55}, shapes:["star"], scalar:1.25 });
+  fire({ particleCount: big?70:45, spread:130, startVelocity:38, origin:{x:.5,y:.5} });
+  // 左右の足元から打ち上げ
+  setTimeout(()=>{ fire({ particleCount:45, angle:60,  spread:75, origin:{x:0, y:.75} }); }, 150);
+  setTimeout(()=>{ fire({ particleCount:45, angle:120, spread:75, origin:{x:1, y:.75} }); }, 150);
+  // 最終進化は上から星シャワー
+  if (big){
+    let n=0; const iv=setInterval(()=>{
+      fire({ particleCount:16, spread:65, startVelocity:18, gravity:.7, ticks:220,
+             origin:{x:Math.random(), y:-0.1}, shapes:["star"], scalar:1.1 });
+      if (++n>=8) clearInterval(iv);
+    }, 180);
+  }
+}
+
 /* ---------- タマゴドロップ ---------- */
 function rollEggType(){
   // コンボが高いほどレアが出やすい
@@ -1574,6 +1615,7 @@ function playEvolution(fromForm, toForm, onDone){
       : `<span id="hatch-name">${toForm.name}</span><br>に しんかした！`;
     SoundFX.hatch();
     burstParticles(monEl, isFinal ? ["🌟","👑","✨","💫","🎉"] : ["🌟","✨","💫","🎉"]);
+    richConfetti(isFinal);   // ★ 画面いっぱいの星＆虹色紙吹雪（最終進化は特大）
     if (typeof onDone === "function") onDone();
   }, 1700);
 }
