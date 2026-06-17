@@ -383,6 +383,72 @@
   .dex-card.got.final .dex-evo.final { color:#d11fae; text-shadow:0 0 7px rgba(255,140,220,.85); }
   .dex-card.got.final .dex-name { color:#b3138e; }
 
+  /* ============ ★ バッジ（称号）（ここに追加）============ */
+  #badge-overlay {
+    position:fixed; inset:0; z-index:72; display:none;
+    align-items:center; justify-content:center; padding:18px;
+    background:rgba(40,28,70,.72); backdrop-filter:blur(2px);
+  }
+  #badge-overlay.active { display:flex; animation:dexFade .25s ease; }
+  #badge-window {
+    width:min(880px,96%); max-height:94%; display:flex; flex-direction:column;
+    background:linear-gradient(#fff6e2,#f3e0b6);
+    border:6px solid var(--wood-mid); border-radius:22px;
+    box-shadow:0 14px 40px rgba(0,0,0,.45); overflow:hidden;
+  }
+  #badge-header {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 18px; background:linear-gradient(#8a5a33,#6b4226); color:#fff7e0;
+  }
+  #badge-title { font-size:clamp(20px,3vw,28px); font-weight:900; text-shadow:0 2px 0 rgba(0,0,0,.4); }
+  #badge-progress { font-size:16px; font-weight:900; color:var(--gold);
+    background:rgba(0,0,0,.3); padding:3px 12px; border-radius:12px; }
+  #badge-close { margin-left:auto; padding:8px 18px; font-size:16px; }
+  #badge-bar-wrap { height:12px; background:#d9c08a; }
+  #badge-bar { height:100%; width:0%; background:linear-gradient(90deg,#ffd54a,#ff9a2e); transition:width .5s; }
+  #badge-grid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:12px; padding:16px; overflow-y:auto;
+  }
+  .badge-card {
+    border-radius:16px; border:4px solid var(--wood-light);
+    background:var(--card-bg); padding:12px 8px; text-align:center;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    box-shadow:0 4px 0 rgba(0,0,0,.12);
+  }
+  .badge-card .badge-icon { font-size:46px; line-height:1.1; }
+  .badge-card .badge-name { font-size:15px; font-weight:900; color:#5a3a18; }
+  .badge-card .badge-desc { font-size:11px; font-weight:bold; color:#7a5a30; line-height:1.35; min-height:30px; }
+  .badge-card.got {
+    border-color:#ffcf3a; background:linear-gradient(#fff3d4,#ffe49e);
+    box-shadow:0 0 0 3px rgba(255,205,60,.7), 0 4px 0 rgba(0,0,0,.12);
+  }
+  .badge-card.got .badge-icon { filter:drop-shadow(0 2px 4px rgba(0,0,0,.25)); animation:badgeShine 2s ease-in-out infinite; }
+  @keyframes badgeShine { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.12) rotate(-4deg); } }
+  .badge-card.locked { background:#efe6cf; border-color:#cdbf9c; }
+  .badge-card.locked .badge-icon { opacity:.5; }
+  .badge-card.locked .badge-name { color:#a99873; }
+
+  /* バッジ獲得ポップアップ */
+  #badge-popup {
+    position:fixed; left:50%; top:16%; transform:translateX(-50%) translateY(-30px);
+    z-index:96; display:none; pointer-events:none;
+    background:linear-gradient(#fff3d4,#ffd24a); border:3px solid #fff;
+    border-radius:18px; padding:10px 26px; text-align:center;
+    box-shadow:0 8px 22px rgba(0,0,0,.35), 0 0 0 4px rgba(255,200,60,.45);
+  }
+  #badge-popup.show { display:block; animation:badgePop 2.2s ease forwards; }
+  @keyframes badgePop {
+    0%{ opacity:0; transform:translateX(-50%) translateY(-30px) scale(.6); }
+    12%{ opacity:1; transform:translateX(-50%) translateY(0) scale(1.1); }
+    20%,82%{ opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+    100%{ opacity:0; transform:translateX(-50%) translateY(-16px) scale(1); }
+  }
+  #badge-popup .bp-head { font-size:15px; font-weight:900; color:#b35a00; }
+  #badge-popup .bp-body { display:flex; align-items:center; gap:8px; justify-content:center; margin-top:2px; }
+  #badge-popup .bp-icon { font-size:30px; }
+  #badge-popup .bp-name { font-size:20px; font-weight:900; color:#7a3b00; }
+
   /* ---- レベルアップ ---- */
   #levelup-banner {
     position:absolute; left:0; right:0; top:14%; text-align:center; pointer-events:none; z-index:55;
@@ -507,6 +573,7 @@
   <div id="title-sub-btns">
     <button id="sample-btn" class="puni-btn blue">サンプルもんだいで あそぶ</button>
     <button id="title-dex-btn" class="puni-btn">📖 ずかんを みる</button>
+    <button id="title-badge-btn" class="puni-btn">🏅 バッジ</button>
   </div>
 </div>
 
@@ -548,6 +615,7 @@
     <div id="collection-count">なかま：<span id="mon-count">0</span>ひき</div>
     <div id="mon-shelf"></div>
     <button id="dex-btn" class="puni-btn">📖 ずかん</button>
+    <button id="badge-btn" class="puni-btn">🏅 バッジ</button>
   </div>
 
   <div id="feedback"></div>
@@ -595,6 +663,22 @@
     <div id="dex-grid"><!-- JSで生成 --></div>
   </div>
 </div>
+
+<!-- ★ バッジ（称号）オーバーレイ（ここに追加） -->
+<div id="badge-overlay">
+  <div id="badge-window">
+    <div id="badge-header">
+      <span id="badge-title">🏅 バッジ</span>
+      <span id="badge-progress">0 / 0</span>
+      <button id="badge-close" class="puni-btn blue">とじる</button>
+    </div>
+    <div id="badge-bar-wrap"><div id="badge-bar"></div></div>
+    <div id="badge-grid"><!-- JSで生成 --></div>
+  </div>
+</div>
+
+<!-- ★ バッジ獲得ポップアップ（ここに追加） -->
+<div id="badge-popup"></div>
 
 <div id="drop-egg"></div>
 <div id="rotate-hint"><span class="phone">📱</span>よこむきに してね！</div>
@@ -870,6 +954,10 @@ const state = {
   bossCurrentQ: null,   // ボス戦で今出している問題
   bossNextStartRatio: null, // 次の問題のタイム開始割合（攻撃ペナルティ用）
   // ▲ ここまで追加 ▲
+  // ▼ 称号・バッジ用（ここに追加）
+  stats: { maxCombo:0, hatchCount:0, evoSeen:false, bossWins:0, rareGot:false },
+  badges: {},           // { バッジID: true } 獲得済み
+  // ▲ ここまで追加 ▲
 };
 
 /* ---------- セーブ／ロード ---------- */
@@ -881,6 +969,7 @@ function save(){
       currentEgg:state.currentEgg, eggQueue:state.eggQueue,
       collection:state.collection,
       weakList:state.weakList,           // ニガテリストも保存（ここに追加）
+      stats:state.stats, badges:state.badges,  // 称号・バッジも保存（ここに追加）
     }));
   } catch(e){}
 }
@@ -893,6 +982,8 @@ function load(){
     state.eggQueue = d.eggQueue||[];
     state.collection = d.collection||[];
     state.weakList = d.weakList||[];     // ニガテリストの復元（ここに追加）
+    if (d.stats) Object.assign(state.stats, d.stats);   // 称号・バッジの復元（ここに追加）
+    state.badges = d.badges||{};
   } catch(e){}
 }
 
@@ -1149,6 +1240,7 @@ function bossAttackEffect(){
 /* 撃破 → 確定で超レアタマゴドロップ */
 function bossDefeated(){
   state.bossActive = false;
+  state.stats.bossWins++; state.stats.rareGot = true; checkBadges();  // ボス＆レアタマゴのバッジ（ここに追加）
   $("q-counter").textContent = "⚔️ ボスを たおした！";
   showFeedback("ボス げきは！！", "good");
   SoundFX.bossDown();
@@ -1221,6 +1313,7 @@ function onAnswer(btn){
 
 function handleCorrect(btn){
   state.combo++;
+  state.stats.maxCombo = Math.max(state.stats.maxCombo, state.combo);  // 最大コンボ記録（ここに追加）
   const timeBonus = Math.round(CONFIG.timeExpMax * state.remainRatio);
   const gained = CONFIG.baseExp + timeBonus;
 
@@ -1254,6 +1347,7 @@ function handleCorrect(btn){
 
   let delay = 1100;
   if (dropped){ setTimeout(()=>playEggDrop(dropped, btn), 700); delay = 2500; }
+  checkBadges();   // コンボ等のバッジ判定（ここに追加）
   save();
 
   setTimeout(()=>{
@@ -1295,6 +1389,7 @@ function addExp(n){
     const b = $("levelup-banner");
     b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
     SoundFX.levelup();
+    checkBadges();   // レベル到達バッジ（ここに追加）
   }
   updateHUD();
 }
@@ -1416,6 +1511,7 @@ function playHatch(){
     const post = stageForCount(mon, countBefore + 1); // この1匹あとの姿
     const evolvedNow = pre.stage !== post.stage;      // 進化のしきい値をまたいだ
     state.collection.push({ name:mon.name, emoji:mon.emoji, eggType:egg.type });
+    state.stats.hatchCount++;   // 孵化回数カウント（ここに追加）
 
     monEl.innerHTML = monVisual(pre.name, pre.emoji, "hatch");
     monEl.style.display = "block";
@@ -1439,7 +1535,7 @@ function playHatch(){
       const t = state.eggQueue.shift();
       state.currentEgg = { type:t, left:EGG_TYPES[t].need };
     }
-    updateIncubator(); updateHUD(); save();
+    updateIncubator(); updateHUD(); checkBadges(); save();   // バッジ判定（ここに追加）
 
     // 進化に到達したら、少し見せてから進化演出へ
     if (evolvedNow){
@@ -1461,6 +1557,7 @@ function playEvolution(fromForm, toForm, onDone){
   const monEl = $("hatch-mon");
   const textEl = $("hatch-text");
   const isFinal = (toForm.stage === 2);
+  state.stats.evoSeen = true; checkBadges();   // 進化を見たバッジ（ここに追加）
   $("hatch-new-badge").classList.remove("show");
 
   textEl.innerHTML = `おや…？ ${fromForm.name}の ようすが…！`;
@@ -1579,6 +1676,73 @@ function closeDex(){
   if (state.answering) startTimer(state.remainRatio);
 }
 
+/* ============================================================
+   ★ 称号・バッジシステム（ここから一式を追加）★
+   ============================================================ */
+function dexCaughtCount(){ return ALL_MONS.filter(m => caughtCount(m.name) > 0).length; }
+
+/* バッジ定義：check(state) が true になったら獲得 */
+const BADGES = [
+  { id:"firstFriend", icon:"🥚", name:"はじめての なかま", desc:"カンジモンを 1ぴき かえした",   check:()=> state.stats.hatchCount >= 1 },
+  { id:"hatch5",      icon:"🐣", name:"タマゴ マスター",    desc:"タマゴを 5こ かえした",          check:()=> state.stats.hatchCount >= 5 },
+  { id:"combo10",     icon:"🔥", name:"10れんぞく せいかい", desc:"10コンボを たっせいした",        check:()=> state.stats.maxCombo  >= 10 },
+  { id:"firstEvo",    icon:"⭐", name:"はじめての しんか",   desc:"しんかを はじめて 見た",          check:()=> state.stats.evoSeen },
+  { id:"bossWin",     icon:"⚔️", name:"ボスハンター",        desc:"ボスを たおした",               check:()=> state.stats.bossWins  >= 1 },
+  { id:"rareEgg",     icon:"🌟", name:"レアタマゴ ゲット",   desc:"レアタマゴを てにいれた",        check:()=> state.stats.rareGot },
+  { id:"lv5",         icon:"🎖️", name:"レベル5 とうたつ",    desc:"レベル5に なった",              check:()=> state.level >= 5 },
+  { id:"lv10",        icon:"🏆", name:"レベル10 とうたつ",   desc:"レベル10に なった",             check:()=> state.level >= 10 },
+  { id:"dexHalf",     icon:"📖", name:"ずかん はんぶん",     desc:"ずかんを 半分 あつめた",        check:()=> dexCaughtCount() >= Math.ceil(ALL_MONS.length/2) },
+  { id:"dexComplete", icon:"👑", name:"ずかん コンプリート", desc:"すべての カンジモンを あつめた", check:()=> dexCaughtCount() >= ALL_MONS.length },
+];
+
+let badgePopupQueue = [];
+/* 条件を満たした未獲得バッジを付与し、演出を出す */
+function checkBadges(){
+  const newly = [];
+  BADGES.forEach(b=>{
+    if (!state.badges[b.id] && b.check()){ state.badges[b.id] = true; newly.push(b); }
+  });
+  if (newly.length){ save(); newly.forEach(b=> badgePopupQueue.push(b)); showNextBadgePopup(); }
+}
+
+function showNextBadgePopup(){
+  if (badgePopupQueue._busy || badgePopupQueue.length === 0) return;
+  badgePopupQueue._busy = true;
+  const b = badgePopupQueue.shift();
+  const el = $("badge-popup");
+  el.innerHTML = `<div class="bp-head">🏅 バッジ ゲット！</div>
+    <div class="bp-body"><span class="bp-icon">${b.icon}</span><span class="bp-name">${b.name}</span></div>`;
+  el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+  SoundFX.newDex();
+  setTimeout(()=>{ badgePopupQueue._busy = false; showNextBadgePopup(); }, 2200);
+}
+
+/* バッジ一覧オーバーレイ */
+function renderBadges(){
+  const got = BADGES.filter(b=> state.badges[b.id]).length;
+  $("badge-progress").textContent = `${got} / ${BADGES.length}`;
+  $("badge-bar").style.width = (got / BADGES.length * 100) + "%";
+  $("badge-grid").innerHTML = BADGES.map(b=>{
+    const owned = !!state.badges[b.id];
+    return `<div class="badge-card ${owned?"got":"locked"}">
+      <div class="badge-icon">${owned ? b.icon : "🔒"}</div>
+      <div class="badge-name">${owned ? b.name : "？？？"}</div>
+      <div class="badge-desc">${b.desc}</div>
+    </div>`;
+  }).join("");
+}
+function openBadges(){
+  SoundFX.tap();
+  if (state.answering) stopTimer();
+  $("badge-overlay").classList.add("active");
+  renderBadges();
+}
+function closeBadges(){
+  SoundFX.tap();
+  $("badge-overlay").classList.remove("active");
+  if (state.answering) startTimer(state.remainRatio);
+}
+
 /* ---------- 起動 ---------- */
 async function startGame(useSample){
   SoundFX.unlock();
@@ -1627,6 +1791,9 @@ window.addEventListener("DOMContentLoaded", ()=>{
   $("title-dex-btn").addEventListener("click", openDex);
   $("dex-close").addEventListener("click", closeDex);
   $("boss-debug-btn").addEventListener("click", forceBoss);  // デバッグ：ボス強制発動（ここに追加）
+  $("badge-btn").addEventListener("click", openBadges);       // バッジを開く（ここに追加）
+  $("title-badge-btn").addEventListener("click", openBadges);
+  $("badge-close").addEventListener("click", closeBadges);
 });
 </script>
 </body>
