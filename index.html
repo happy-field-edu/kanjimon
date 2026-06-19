@@ -311,6 +311,28 @@
     background:linear-gradient(#9b6cff,#6a3fd6); box-shadow:0 6px 0 #4a2aa0,0 8px 12px rgba(0,0,0,.25); }
   #dex-btn:active { box-shadow:0 1px 0 #4a2aa0,0 2px 4px rgba(0,0,0,.25); }
 
+  /* やめるボタン（グレー系で控えめ）：ここに追加 */
+  #quit-btn { margin-top:2px; padding:8px 18px; font-size:15px;
+    background:linear-gradient(#b9a07e,#8a7152); box-shadow:0 6px 0 #5f4a30,0 8px 12px rgba(0,0,0,.25); }
+  #quit-btn:active { box-shadow:0 1px 0 #5f4a30,0 2px 4px rgba(0,0,0,.25); }
+
+  /* やめる確認オーバーレイ：ここに追加 */
+  #quit-overlay {
+    position:fixed; inset:0; z-index:85; display:none;
+    align-items:center; justify-content:center;
+    background:rgba(40,28,70,.6); backdrop-filter:blur(2px);
+  }
+  #quit-overlay.active { display:flex; animation:dexFade .2s ease; }
+  #quit-window {
+    background:linear-gradient(#fff6e2,#f3e0b6); border:5px solid var(--wood-mid);
+    border-radius:20px; padding:24px 30px; text-align:center;
+    box-shadow:0 14px 40px rgba(0,0,0,.45);
+  }
+  #quit-msg { font-size:22px; font-weight:900; color:#5a3a18; line-height:1.5; margin-bottom:18px; }
+  #quit-btns { display:flex; gap:16px; justify-content:center; }
+  #quit-yes { background:linear-gradient(#b9a07e,#8a7152); box-shadow:0 6px 0 #5f4a30,0 8px 12px rgba(0,0,0,.25); }
+  #quit-yes:active { box-shadow:0 1px 0 #5f4a30,0 2px 4px rgba(0,0,0,.25); }
+
   /* ---- タイトル画面のサブボタン ---- */
   #title-sub-btns { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
   #title-sub-btns .puni-btn { font-size:16px; padding:10px 22px; }
@@ -628,6 +650,7 @@
     <div id="mon-shelf"></div>
     <button id="dex-btn" class="puni-btn">📖 ずかん</button>
     <button id="badge-btn" class="puni-btn">🏅 バッジ</button>
+    <button id="quit-btn" class="puni-btn">🏠 やめる</button>
   </div>
 
   <div id="feedback"></div>
@@ -691,6 +714,17 @@
 
 <!-- ★ バッジ獲得ポップアップ（ここに追加） -->
 <div id="badge-popup"></div>
+
+<!-- ★ やめる確認オーバーレイ（ここに追加） -->
+<div id="quit-overlay">
+  <div id="quit-window">
+    <div id="quit-msg">ゲームを やめて<br>タイトルに もどる？</div>
+    <div id="quit-btns">
+      <button id="quit-yes" class="puni-btn">やめる</button>
+      <button id="quit-no" class="puni-btn blue">つづける</button>
+    </div>
+  </div>
+</div>
 
 <!-- ★ 紙吹雪用キャンバス（最前面・ここに追加） -->
 <canvas id="confetti-canvas"></canvas>
@@ -1807,6 +1841,31 @@ function closeBadges(){
   if (state.answering) startTimer(state.remainRatio);
 }
 
+/* ---------- ★ やめる（タイトルへ戻る）（ここに追加）---------- */
+function openQuitConfirm(){
+  SoundFX.tap();
+  if (state.answering) stopTimer();   // 確認中はタイマー停止
+  $("quit-overlay").classList.add("active");
+}
+function closeQuitConfirm(){
+  SoundFX.tap();
+  $("quit-overlay").classList.remove("active");
+  if (state.answering) startTimer(state.remainRatio);  // 残り時間から再開
+}
+function quitToTitle(){
+  SoundFX.tap();
+  // 進行中の状態をリセット（あつめたもの＝collection/タマゴ/バッジ等は保存ずみ）
+  state.answering = false;
+  stopTimer();
+  state.bossActive = false; state.bossNextStartRatio = null;
+  $("boss-stage").classList.remove("show");
+  $("game-screen").classList.remove("boss-mode");
+  $("battle-area").style.background = "";
+  $("quit-overlay").classList.remove("active");
+  save();
+  showScreen("title-screen");
+}
+
 /* ---------- 起動 ---------- */
 async function startGame(useSample){
   SoundFX.unlock();
@@ -1859,6 +1918,9 @@ window.addEventListener("DOMContentLoaded", ()=>{
   $("badge-btn").addEventListener("click", openBadges);       // バッジを開く（ここに追加）
   $("title-badge-btn").addEventListener("click", openBadges);
   $("badge-close").addEventListener("click", closeBadges);
+  $("quit-btn").addEventListener("click", openQuitConfirm);   // やめる（ここに追加）
+  $("quit-yes").addEventListener("click", quitToTitle);
+  $("quit-no").addEventListener("click", closeQuitConfirm);
 });
 </script>
 </body>
