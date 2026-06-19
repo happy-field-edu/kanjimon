@@ -530,10 +530,9 @@
     100%{ transform:scale(.2) rotate(40deg); opacity:0; }
   }
 
-  /* ボス戦中：背景をボスのシーンに差し替え＋赤いふんいき（ここで背景を追加） */
+  /* ボス戦中：赤いふんいき（背景画像はボスごとにJSで設定） */
   #game-screen.boss-mode #battle-area {
     animation:bossVignette 1.4s ease-in-out infinite;
-    background:url("images/boss_bg.png") center/cover no-repeat;
   }
   /* シーン内にボスが描かれているので、浮いている単体ボスは隠す（二重表示ふせぎ） */
   #game-screen.boss-mode #boss-img { opacity:0; }
@@ -729,6 +728,13 @@ const CONFIG = {
   bossPenalty  : 0.45,    // ボス戦で不正解した次の問題のタイム開始割合（攻撃ペナルティ）
   // ▲▲ ここまで追加 ▲▲
 };
+
+/* ▼ ボスのバリエーション（ランダム出現）：画像を足してここに1行加えるだけで増やせる */
+const BOSSES = [
+  { name:"ほのおオニ", img:"images/boss_01.png", bg:"images/boss_bg.png",    hp:3 },
+  { name:"どくオニ",   img:"images/boss_02.png", bg:"images/boss_bg_02.png", hp:3 },
+  { name:"こおりオニ", img:"images/boss_03.png", bg:"images/boss_bg_03.png", hp:4 },
+];
 
 /* タマゴの種類（孵化に必要な正解数・出やすさ） */
 const EGG_TYPES = {
@@ -969,6 +975,7 @@ const state = {
   bossMaxHP: 0,
   bossCurrentQ: null,   // ボス戦で今出している問題
   bossNextStartRatio: null, // 次の問題のタイム開始割合（攻撃ペナルティ用）
+  currentBoss: null,    // 今出ているボス（BOSSESから抽選）
   // ▲ ここまで追加 ▲
   // ▼ 称号・バッジ用（ここに追加）
   stats: { maxCombo:0, hatchCount:0, evoSeen:false, bossWins:0, rareGot:false },
@@ -1164,14 +1171,22 @@ function advanceQuestion(){
    ============================================================ */
 function startBoss(){
   state.bossActive = true;
-  state.bossMaxHP = CONFIG.bossHP;
-  state.bossHP = CONFIG.bossHP;
+  // ★ ボスをランダム抽選し、見た目・背景・HPを反映
+  const boss = BOSSES[Math.floor(Math.random()*BOSSES.length)];
+  state.currentBoss = boss;
+  state.bossMaxHP = boss.hp || CONFIG.bossHP;
+  state.bossHP = state.bossMaxHP;
   state.bossNextStartRatio = null;
+  // ボス画像（撃破時に見える単体スプライト）と背景シーンを切り替え
+  const sprite = $("boss-img").querySelector("img");
+  if (sprite){ sprite.src = boss.img; $("boss-img").classList.remove("noimg"); }
+  $("battle-area").style.background = `url("${boss.bg}") center/cover no-repeat`;
   stopTimer(); state.answering = false;
   SoundFX.bossAppear();
 
   // 「WARNING!!」警告演出 → 赤黒フラッシュ
   const warn = $("boss-warning");
+  warn.querySelector(".bw-text").innerHTML = `WARNING!!<br><span>${boss.name}が あらわれた！</span>`;
   warn.classList.remove("show"); void warn.offsetWidth; warn.classList.add("show");
   $("game-screen").classList.add("boss-mode");
 
@@ -1195,7 +1210,7 @@ function nextBossQuestion(){
     q = state.questions[state.order.pop()];
   }
   state.bossCurrentQ = q;
-  $("q-counter").textContent = `⚔️ ボスせん！ のこりHP ${state.bossHP}`;
+  $("q-counter").textContent = `⚔️ ${state.currentBoss?state.currentBoss.name:"ボス"}せん！ のこりHP ${state.bossHP}`;
   renderQuestion(q);
   state.answering = true;
   const r = state.bossNextStartRatio; state.bossNextStartRatio = null;
@@ -1239,7 +1254,7 @@ function handleBossAnswer(btn){
 function updateBossHP(damage){
   const hp = Math.max(0, state.bossHP);
   $("boss-hp-bar").style.width = (hp / state.bossMaxHP * 100) + "%";
-  $("boss-hp-label").textContent = `ボス HP ${hp} / ${state.bossMaxHP}`;
+  $("boss-hp-label").textContent = `${state.currentBoss?state.currentBoss.name:"ボス"} HP ${hp} / ${state.bossMaxHP}`;
   if (damage){
     const img = $("boss-img");
     img.classList.remove("hit"); void img.offsetWidth; img.classList.add("hit");
@@ -1272,6 +1287,7 @@ function bossDefeated(){
     setTimeout(()=>{
       $("boss-stage").classList.remove("show");
       img.classList.remove("boss-defeated");
+      $("battle-area").style.background = "";   // ボス背景を解除して通常の平原へ戻す（ここに追加）
       save();
       nextQuestion();   // 通常クイズへ復帰
     }, 2000);
@@ -1821,6 +1837,7 @@ async function startGame(useSample){
   state.bossNextStartRatio = null;
   $("boss-stage").classList.remove("show");
   $("game-screen").classList.remove("boss-mode");
+  $("battle-area").style.background = "";   // ボス背景を解除
 
   buildMonsterRow();
   updateHUD();
