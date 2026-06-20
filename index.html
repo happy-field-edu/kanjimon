@@ -158,31 +158,33 @@
     transition:transform .1s;
     position:relative;
   }
-  .mon-slot:active .choice-card { transform:scale(.92) translateY(4px); }
-  .mon-slot:active .slime { transform:scaleY(.82) scaleX(1.12); }
-  .choice-card {
-    width:clamp(96px,13vw,150px); height:clamp(96px,13vw,150px);
-    border-radius:14px; border:5px solid var(--wood-mid);
-    background:var(--card-bg);
-    box-shadow:0 6px 0 rgba(0,0,0,.18), 0 8px 12px rgba(0,0,0,.22);
-    object-fit:cover; display:block;
-    transition:transform .12s;
+  .mon-slot:active .slime-mon { transform:scale(.93); }
+  /* 看板を持ったスライム（画像） */
+  .slime-mon {
+    position:relative; width:clamp(120px,17vw,185px);
+    transition:transform .12s; transform-origin:bottom center;
+    animation:slimeBob 1.8s ease-in-out infinite;
   }
-  .slime { width:clamp(72px,9.5vw,110px); margin-top:-6px; transition:transform .12s; transform-origin:bottom center; }
-  .slime svg { width:100%; height:auto; display:block; animation:slimeBob 1.6s ease-in-out infinite; transform-origin:bottom center; }
-  .mon-slot:nth-child(2) .slime svg { animation-delay:.2s; }
-  .mon-slot:nth-child(3) .slime svg { animation-delay:.4s; }
-  .mon-slot:nth-child(4) .slime svg { animation-delay:.6s; }
-  @keyframes slimeBob { 0%,100%{transform:scaleY(1);} 50%{transform:scaleY(.93) scaleX(1.04);} }
+  .mon-slot:nth-child(2) .slime-mon { animation-delay:.2s; }
+  .mon-slot:nth-child(3) .slime-mon { animation-delay:.4s; }
+  .mon-slot:nth-child(4) .slime-mon { animation-delay:.6s; }
+  .slime-pic { width:100%; height:auto; display:block;
+    filter:drop-shadow(0 6px 6px rgba(0,0,0,.22)); transition:filter .15s; }
+  /* 看板の白紙の上に「答えの漢字」を重ねる（位置は画像に合わせた割合） */
+  .choice-card {
+    position:absolute; left:21%; top:7.5%; width:52%; height:25%;
+    object-fit:contain; display:block; transition:transform .12s;
+  }
+  @keyframes slimeBob { 0%,100%{transform:scaleY(1) translateY(0);} 50%{transform:scaleY(.97) translateY(-3px);} }
 
-  .mon-slot.correct-pick .slime svg { animation:slimeJump .55s ease; }
-  @keyframes slimeJump { 0%{transform:translateY(0);} 35%{transform:translateY(-46px) scaleY(1.08);} 70%{transform:translateY(0) scaleY(.8) scaleX(1.2);} 100%{transform:translateY(0);} }
-  .mon-slot.correct-pick .choice-card { border-color:#2eb84f; box-shadow:0 0 0 5px rgba(70,220,110,.55), 0 0 28px 8px rgba(120,255,160,.8); }
+  .mon-slot.correct-pick .slime-mon { animation:slimeJump .55s ease; }
+  @keyframes slimeJump { 0%{transform:translateY(0);} 35%{transform:translateY(-42px) scale(1.05);} 70%{transform:translateY(0) scaleY(.86) scaleX(1.14);} 100%{transform:translateY(0);} }
+  .mon-slot.correct-pick .slime-pic { filter:drop-shadow(0 0 18px rgba(80,230,120,.95)) drop-shadow(0 0 9px rgba(120,255,160,.9)); }
   .mon-slot.wrong-pick { animation:shakeX .45s; }
-  .mon-slot.wrong-pick .choice-card { border-color:#d33; filter:grayscale(.6); }
+  .mon-slot.wrong-pick .slime-pic { filter:grayscale(.7) brightness(.92); }
   @keyframes shakeX { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-10px);} 40%{transform:translateX(9px);} 60%{transform:translateX(-7px);} 80%{transform:translateX(5px);} }
   .mon-slot.dim { opacity:.35; filter:grayscale(.7); pointer-events:none; }
-  .mon-slot.reveal-correct .choice-card { border-color:#2eb84f; box-shadow:0 0 0 5px rgba(70,220,110,.55); }
+  .mon-slot.reveal-correct .slime-pic { filter:drop-shadow(0 0 16px rgba(80,230,120,.95)); }
   .mon-slot:disabled { cursor:default; }
 
   /* ---- 右サイド：ふらん器 ---- */
@@ -869,12 +871,12 @@ function monVisual(name, emoji, cls){
   return `<span class="mon-visual ${cls||""}">${inner}</span>`;
 }
 
-/* スライム（選択肢モンスター）の色 */
-const SLIME_COLORS = [
-  { body:"#6fdc6f", dark:"#3aa83a" },
-  { body:"#6fb9ff", dark:"#2e7fd6" },
-  { body:"#ff9ad5", dark:"#e055a5" },
-  { body:"#ffd75e", dark:"#e0a210" },
+/* 看板スライム画像（4色：選択肢4体にそれぞれ割り当て） */
+const SLIME_PICS = [
+  "images/slime_card.png",   // みどり
+  "images/slime_blue.png",   // あお
+  "images/slime_pink.png",   // ピンク
+  "images/slime_yellow.png", // きいろ
 ];
 
 /* ---------- サンプル問題（CSV未設定時） ----------
@@ -1143,8 +1145,10 @@ function buildMonsterRow(){
     const btn = document.createElement("button");
     btn.className = "mon-slot";
     btn.innerHTML =
-      `<img class="choice-card" alt="せんたくし" src="https://via.placeholder.com/150">` +
-      `<div class="slime">${slimeSVG(SLIME_COLORS[i])}</div>`;
+      `<div class="slime-mon">` +
+        `<img class="slime-pic" alt="" src="${SLIME_PICS[i % SLIME_PICS.length]}">` +
+        `<img class="choice-card" alt="せんたくし">` +
+      `</div>`;
     btn.addEventListener("click", ()=>onAnswer(btn));
     row.appendChild(btn);
   }
@@ -1161,7 +1165,7 @@ function renderQuestion(q){
     btn.className = "mon-slot";
     btn.disabled = false;
     btn.dataset.correct = choices[i].correct ? "1" : "0";
-    const img = btn.querySelector("img");
+    const img = btn.querySelector(".choice-card");
     img.src = choices[i].src;
     img.onerror = () => { img.onerror=null; img.src = "https://via.placeholder.com/150?text=%3F"; };
   });
