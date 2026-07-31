@@ -147,45 +147,76 @@
   }
   #q-text .target { color:var(--gold); font-size:1.25em; padding:0 2px; }
 
-  /* ---- モンスター（選択肢） ---- */
+  /* ---- モンスター（選択肢）＝ 大きな漢字カード＋小さなスライム ---- */
   #monsters-row {
-    flex:1; display:flex; align-items:flex-end; justify-content:center;
-    gap:min(3vw,34px); padding:6px 12px 18px;
+    flex:1; min-height:0;
+    display:grid; grid-template-columns:repeat(4,auto);
+    justify-content:center; align-content:center;
+    gap:min(2vw,18px); padding:2px 8px 8px;
+    overflow:hidden;
   }
   .mon-slot {
-    display:flex; flex-direction:column; align-items:center; gap:2px;
-    border:none; background:none; padding:0;
-    transition:transform .1s;
-    position:relative;
+    /* カードの一辺：よこ幅と高さの両方に収まる最大サイズ（=画像を最大化）
+       よこ：バトルエリア幅(≒画面の78%)を4分割／たて：カード＋スライムが収まる値 */
+    --card: min(17.5vw, 30vh);
+    display:flex; flex-direction:column; align-items:center; gap:0;
+    border:none; background:none; padding:0; position:relative;
+    -webkit-tap-highlight-color:transparent;
   }
-  .mon-slot:active .slime-mon { transform:scale(.93); }
-  /* 看板を持ったスライム（画像） */
-  .slime-mon {
-    position:relative; width:clamp(120px,17vw,185px);
-    transition:transform .12s; transform-origin:bottom center;
-    animation:slimeBob 1.8s ease-in-out infinite;
+  /* 漢字カード本体（大きく・押しやすく） */
+  .card-frame {
+    width:var(--card); height:var(--card);
+    background:var(--card-bg);
+    border:5px solid var(--wood-mid); border-radius:20px;
+    box-shadow:0 8px 0 rgba(0,0,0,.2), 0 12px 18px rgba(0,0,0,.28);
+    display:flex; align-items:center; justify-content:center;
+    padding:5px; box-sizing:border-box;
+    transition:transform .12s, box-shadow .12s, border-color .15s, filter .15s;
   }
-  .mon-slot:nth-child(2) .slime-mon { animation-delay:.2s; }
-  .mon-slot:nth-child(3) .slime-mon { animation-delay:.4s; }
-  .mon-slot:nth-child(4) .slime-mon { animation-delay:.6s; }
-  .slime-pic { width:100%; height:auto; display:block;
-    filter:drop-shadow(0 6px 6px rgba(0,0,0,.22)); transition:filter .15s; }
-  /* 看板の白紙の上に「答えの漢字」を重ねる（位置は画像に合わせた割合） */
-  .choice-card {
-    position:absolute; left:21%; top:7.5%; width:52%; height:25%;
-    object-fit:contain; display:block; transition:transform .12s;
+  .choice-card { width:100%; height:100%; object-fit:contain; display:block; }
+  /* スライムはカードの下に小さく（かわいさ担当） */
+  .slime-pic {
+    width:calc(var(--card)*0.44); height:auto; display:block; margin-top:calc(var(--card)*-0.04);
+    filter:drop-shadow(0 5px 5px rgba(0,0,0,.22)); transition:filter .15s, transform .12s;
+    transform-origin:bottom center; animation:slimeBob 1.8s ease-in-out infinite;
   }
-  @keyframes slimeBob { 0%,100%{transform:scaleY(1) translateY(0);} 50%{transform:scaleY(.97) translateY(-3px);} }
+  .mon-slot:nth-child(2) .slime-pic { animation-delay:.2s; }
+  .mon-slot:nth-child(3) .slime-pic { animation-delay:.4s; }
+  .mon-slot:nth-child(4) .slime-pic { animation-delay:.6s; }
+  @keyframes slimeBob { 0%,100%{transform:scaleY(1) translateY(0);} 50%{transform:scaleY(.96) translateY(-3px);} }
 
-  .mon-slot.correct-pick .slime-mon { animation:slimeJump .55s ease; }
-  @keyframes slimeJump { 0%{transform:translateY(0);} 35%{transform:translateY(-42px) scale(1.05);} 70%{transform:translateY(0) scaleY(.86) scaleX(1.14);} 100%{transform:translateY(0);} }
-  .mon-slot.correct-pick .slime-pic { filter:drop-shadow(0 0 18px rgba(80,230,120,.95)) drop-shadow(0 0 9px rgba(120,255,160,.9)); }
+  /* タップ：カードがプニッと沈む */
+  .mon-slot:active .card-frame {
+    transform:translateY(8px) scale(.96);
+    box-shadow:0 1px 0 rgba(0,0,0,.2), 0 3px 6px rgba(0,0,0,.28);
+    border-color:var(--gold);
+  }
+  .mon-slot:active .slime-pic { transform:scaleY(.86) scaleX(1.12); }
+
+  /* 正解：カードが緑に光る＋スライムがジャンプ */
+  .mon-slot.correct-pick .card-frame {
+    border-color:#2eb84f;
+    box-shadow:0 0 0 6px rgba(70,220,110,.6), 0 0 34px 10px rgba(120,255,160,.85), 0 8px 0 rgba(0,0,0,.15);
+  }
+  .mon-slot.correct-pick .slime-pic { animation:slimeJump .55s ease; }
+  @keyframes slimeJump { 0%{transform:translateY(0);} 35%{transform:translateY(-38px) scale(1.06);} 70%{transform:translateY(0) scaleY(.86) scaleX(1.14);} 100%{transform:translateY(0);} }
+  /* 不正解：赤くゆれる */
   .mon-slot.wrong-pick { animation:shakeX .45s; }
+  .mon-slot.wrong-pick .card-frame { border-color:#d33; filter:grayscale(.5) brightness(.95); }
   .mon-slot.wrong-pick .slime-pic { filter:grayscale(.7) brightness(.92); }
   @keyframes shakeX { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-10px);} 40%{transform:translateX(9px);} 60%{transform:translateX(-7px);} 80%{transform:translateX(5px);} }
-  .mon-slot.dim { opacity:.35; filter:grayscale(.7); pointer-events:none; }
-  .mon-slot.reveal-correct .slime-pic { filter:drop-shadow(0 0 16px rgba(80,230,120,.95)); }
+  .mon-slot.dim { opacity:.4; filter:grayscale(.7); pointer-events:none; }
+  /* 答え合わせで正解を教える */
+  .mon-slot.reveal-correct .card-frame {
+    border-color:#2eb84f; box-shadow:0 0 0 6px rgba(70,220,110,.6), 0 8px 0 rgba(0,0,0,.15);
+  }
   .mon-slot:disabled { cursor:default; }
+
+  /* たて画面（タブレット等）は 2×2 にして、よこ幅をめいっぱい使う */
+  @media (orientation:portrait) {
+    #monsters-row { grid-template-columns:repeat(2,auto); align-content:center; }
+    .mon-slot { --card: min(40vw, 26vh); }
+  }
 
   /* ---- 右サイド：ふらん器 ---- */
   #incubator-panel {
@@ -871,12 +902,12 @@ function monVisual(name, emoji, cls){
   return `<span class="mon-visual ${cls||""}">${inner}</span>`;
 }
 
-/* 看板スライム画像（4色：選択肢4体にそれぞれ割り当て） */
+/* スライム画像（4色：選択肢4体にそれぞれ割り当て。看板は外して体だけ） */
 const SLIME_PICS = [
-  "images/slime_card.png",   // みどり
-  "images/slime_blue.png",   // あお
-  "images/slime_pink.png",   // ピンク
-  "images/slime_yellow.png", // きいろ
+  "images/slime_body_green.png",  // みどり
+  "images/slime_body_blue.png",   // あお
+  "images/slime_body_pink.png",   // ピンク
+  "images/slime_body_yellow.png", // きいろ
 ];
 
 /* ---------- サンプル問題（CSV未設定時） ----------
@@ -1145,10 +1176,8 @@ function buildMonsterRow(){
     const btn = document.createElement("button");
     btn.className = "mon-slot";
     btn.innerHTML =
-      `<div class="slime-mon">` +
-        `<img class="slime-pic" alt="" src="${SLIME_PICS[i % SLIME_PICS.length]}">` +
-        `<img class="choice-card" alt="せんたくし">` +
-      `</div>`;
+      `<div class="card-frame"><img class="choice-card" alt="せんたくし"></div>` +
+      `<img class="slime-pic" alt="" src="${SLIME_PICS[i % SLIME_PICS.length]}">`;
     btn.addEventListener("click", ()=>onAnswer(btn));
     row.appendChild(btn);
   }
