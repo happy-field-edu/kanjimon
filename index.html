@@ -63,17 +63,44 @@
   #title-logo small { display:block; font-size:.35em; -webkit-text-stroke:1px #8a4a10; }
   @keyframes logoBob { 0%,100%{transform:translateY(0) rotate(-1.5deg);} 50%{transform:translateY(-12px) rotate(1.5deg);} }
   #title-mons { font-size:54px; letter-spacing:14px; animation:logoBob 2.4s .3s ease-in-out infinite; }
-  #csv-box {
-    background:rgba(255,255,255,.85); border:3px dashed var(--wood-mid); border-radius:16px;
-    padding:14px 18px; width:min(620px,90vw); text-align:left;
-  }
-  #csv-box label { font-size:14px; font-weight:bold; color:var(--wood-dark); }
-  #csv-url {
-    width:100%; margin-top:6px; padding:10px 12px; font-size:14px;
-    border:2px solid var(--wood-light); border-radius:10px; outline:none;
-  }
-  #csv-status { font-size:13px; margin-top:6px; min-height:18px; color:#1b6e2d; font-weight:bold; }
+  /* 読み込み結果（タイトルに小さく出るだけ） */
+  #csv-status { font-size:14px; min-height:20px; color:#1b6e2d; font-weight:bold;
+    text-shadow:0 1px 2px rgba(255,255,255,.8); }
   #csv-status.err { color:#c62828; }
+
+  /* 先生用せってい：控えめなグレーのボタン */
+  .puni-btn.gray { background:linear-gradient(#b9a07e,#8a7152); box-shadow:0 7px 0 #5f4a30,0 10px 14px rgba(0,0,0,.25); }
+  .puni-btn.gray:active { box-shadow:0 1px 0 #5f4a30,0 2px 4px rgba(0,0,0,.25); }
+
+  #settings-overlay {
+    position:fixed; inset:0; z-index:88; display:none;
+    align-items:center; justify-content:center; padding:18px;
+    background:rgba(30,20,52,.82); backdrop-filter:blur(4px);
+  }
+  #settings-overlay.active { display:flex; animation:dexFade .2s ease; }
+  #settings-window {
+    width:min(680px,96%); background:linear-gradient(#fff6e2,#f3e0b6);
+    border:6px solid var(--wood-mid); border-radius:20px; overflow:hidden;
+    box-shadow:0 14px 40px rgba(0,0,0,.45);
+  }
+  #settings-header {
+    display:flex; align-items:center; gap:12px; padding:12px 18px;
+    background:linear-gradient(#8a5a33,#6b4226); color:#fff7e0;
+  }
+  #settings-title { font-size:clamp(18px,2.6vw,24px); font-weight:900; text-shadow:0 2px 0 rgba(0,0,0,.4); }
+  #settings-close { margin-left:auto; padding:8px 18px; font-size:16px; }
+  #settings-body { padding:18px 22px 22px; text-align:left; }
+  #settings-body label { display:block; font-size:15px; font-weight:900; color:var(--wood-dark); margin-bottom:8px; }
+  #csv-url {
+    width:100%; padding:12px 14px; font-size:15px; box-sizing:border-box;
+    border:2px solid var(--wood-light); border-radius:10px; outline:none; background:#fff;
+  }
+  #csv-url:focus { border-color:var(--gold); }
+  #settings-note { font-size:13px; font-weight:bold; color:#7a5a30; line-height:1.7; margin-top:10px; }
+  #settings-btns { display:flex; gap:12px; margin-top:16px; }
+  #settings-btns .puni-btn { font-size:16px; padding:10px 22px; }
+  #settings-msg { margin-top:10px; min-height:20px; font-size:14px; font-weight:900; color:#1b6e2d; }
+  #settings-msg.err { color:#c62828; }
 
   /* ============ ゲーム画面 ============ */
   #game-screen { flex-direction:row; }
@@ -331,6 +358,9 @@
   #dex-btn { margin-top:2px; padding:9px 18px; font-size:17px;
     background:linear-gradient(#9b6cff,#6a3fd6); box-shadow:0 6px 0 #4a2aa0,0 8px 12px rgba(0,0,0,.25); }
   #dex-btn:active { box-shadow:0 1px 0 #4a2aa0,0 2px 4px rgba(0,0,0,.25); }
+
+  /* ふらん器パネルの先生用ボタン（小さく控えめ）：ここに追加 */
+  #settings-btn { margin-top:2px; padding:6px 14px; font-size:13px; opacity:.85; }
 
   /* やめるボタン（グレー系で控えめ）：ここに追加 */
   #quit-btn { margin-top:2px; padding:8px 18px; font-size:15px;
@@ -619,16 +649,13 @@
 <div id="title-screen" class="screen active">
   <div id="title-logo">カンジモン<small>〜 かんじ島クイズ 〜</small></div>
   <div id="title-mons">🥚🐲🥚</div>
-  <div id="csv-box">
-    <label>📋 もんだいスプレッドシート（こうかいCSVのURL）｜先生用</label>
-    <input id="csv-url" type="text" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?output=csv（空ならサンプル問題）">
-    <div id="csv-status"></div>
-  </div>
+  <div id="csv-status"></div>
   <button id="start-btn" class="puni-btn">ぼうけんに しゅっぱつ！</button>
   <div id="title-sub-btns">
     <button id="sample-btn" class="puni-btn blue">サンプルもんだいで あそぶ</button>
     <button id="title-dex-btn" class="puni-btn">📖 ずかんを みる</button>
     <button id="title-badge-btn" class="puni-btn">🏅 バッジ</button>
+    <button id="title-settings-btn" class="puni-btn gray">⚙️ せんせい</button>
   </div>
 </div>
 
@@ -669,6 +696,7 @@
     <button id="dex-btn" class="puni-btn">📖 ずかん</button>
     <button id="badge-btn" class="puni-btn">🏅 バッジ</button>
     <button id="quit-btn" class="puni-btn">🏠 やめる</button>
+    <button id="settings-btn" class="puni-btn gray">⚙️ せんせい</button>
   </div>
 
   <div id="feedback"></div>
@@ -727,6 +755,29 @@
     </div>
     <div id="badge-bar-wrap"><div id="badge-bar"></div></div>
     <div id="badge-grid"><!-- JSで生成 --></div>
+  </div>
+</div>
+
+<!-- ★ 先生用せってい（問題スプレッドシートのURL）：ここに追加 -->
+<div id="settings-overlay">
+  <div id="settings-window">
+    <div id="settings-header">
+      <span id="settings-title">⚙️ せんせい せってい</span>
+      <button id="settings-close" class="puni-btn blue">とじる</button>
+    </div>
+    <div id="settings-body">
+      <label for="csv-url">📋 もんだいスプレッドシート（ウェブに公開したCSVのURL）</label>
+      <input id="csv-url" type="text" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?output=csv">
+      <div id="settings-note">
+        からっぽのまま「ぼうけんに しゅっぱつ！」を おすと、サンプルもんだいで あそべます。<br>
+        いちど いれた URL は じどうで ほぞんされます。
+      </div>
+      <div id="settings-btns">
+        <button id="settings-save" class="puni-btn">ほぞんする</button>
+        <button id="settings-clear" class="puni-btn gray">けす</button>
+      </div>
+      <div id="settings-msg"></div>
+    </div>
   </div>
 </div>
 
@@ -1830,6 +1881,38 @@ function closeBadges(){
   if (state.answering) startTimer();
 }
 
+/* ---------- ★ 先生用せってい（問題スプレッドシート）（ここに追加）---------- */
+function openSettings(){
+  SoundFX.tap();
+  if (state.answering) stopTimer();
+  $("settings-msg").textContent = ""; $("settings-msg").className = "";
+  $("csv-url").value = localStorage.getItem("kanjimon_csv_url") || "";
+  $("settings-overlay").classList.add("active");
+}
+function closeSettings(){
+  SoundFX.tap();
+  $("settings-overlay").classList.remove("active");
+  if (state.answering) startTimer();
+}
+function saveSettings(){
+  SoundFX.tap();
+  const url = $("csv-url").value.trim();
+  const msg = $("settings-msg");
+  if (url && !/^https?:\/\//.test(url)){
+    msg.className = "err"; msg.textContent = "⚠️ URLは https:// で はじまるものを いれてね";
+    return;
+  }
+  if (url) localStorage.setItem("kanjimon_csv_url", url);
+  else localStorage.removeItem("kanjimon_csv_url");
+  msg.className = ""; msg.textContent = url ? "✅ ほぞんしました！つぎの ぼうけんから つかわれます" : "✅ けしました（サンプルもんだいに なります）";
+}
+function clearSettings(){
+  SoundFX.tap();
+  $("csv-url").value = "";
+  localStorage.removeItem("kanjimon_csv_url");
+  const msg = $("settings-msg"); msg.className = ""; msg.textContent = "✅ けしました（サンプルもんだいに なります）";
+}
+
 /* ---------- ★ やめる（タイトルへ戻る）（ここに追加）---------- */
 function openQuitConfirm(){
   SoundFX.tap();
@@ -1858,14 +1941,14 @@ function quitToTitle(){
 async function startGame(useSample){
   SoundFX.unlock();
   const status = $("csv-status");
-  const url = $("csv-url").value.trim();
+  // 問題のURLは「先生用せってい」で保存したものを使う（タイトルには入力欄を置かない）
+  const url = (localStorage.getItem("kanjimon_csv_url") || "").trim();
   status.className = ""; status.textContent = "";
 
   if (!useSample && url){
     status.textContent = "📡 もんだいを よみこみちゅう…";
     try {
       state.questions = await loadQuestionsFromCSV(url);
-      localStorage.setItem("kanjimon_csv_url", url);
       status.textContent = `✅ ${state.questions.length}もん よみこみました！`;
     } catch(e){
       status.className = "err";
@@ -1894,8 +1977,6 @@ async function startGame(useSample){
 
 window.addEventListener("DOMContentLoaded", ()=>{
   load();
-  const savedURL = localStorage.getItem("kanjimon_csv_url");
-  if (savedURL) $("csv-url").value = savedURL;
   $("start-btn").addEventListener("click", ()=>startGame(false));
   $("sample-btn").addEventListener("click", ()=>startGame(true));
   $("dex-btn").addEventListener("click", openDex);
@@ -1908,6 +1989,12 @@ window.addEventListener("DOMContentLoaded", ()=>{
   $("quit-btn").addEventListener("click", openQuitConfirm);   // やめる（ここに追加）
   $("quit-yes").addEventListener("click", quitToTitle);
   $("quit-no").addEventListener("click", closeQuitConfirm);
+  // 先生用せってい（ここに追加）
+  $("title-settings-btn").addEventListener("click", openSettings);
+  $("settings-btn").addEventListener("click", openSettings);
+  $("settings-close").addEventListener("click", closeSettings);
+  $("settings-save").addEventListener("click", saveSettings);
+  $("settings-clear").addEventListener("click", clearSettings);
 });
 </script>
 </body>
