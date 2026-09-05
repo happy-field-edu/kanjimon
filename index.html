@@ -781,11 +781,12 @@
       <button id="settings-close" class="puni-btn blue">とじる</button>
     </div>
     <div id="settings-body">
-      <label for="csv-url">📋 もんだいスプレッドシート（ウェブに公開したCSVのURL）</label>
+      <label for="csv-url">📋 べつの もんだいを つかう（ウェブに公開したCSVのURL）</label>
       <input id="csv-url" type="text" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?output=csv">
       <div id="settings-note">
-        からっぽのまま「ぼうけんに しゅっぱつ！」を おすと、サンプルもんだいで あそべます。<br>
-        いちど いれた URL は じどうで ほぞんされます。
+        ふだんは からっぽで OK です。<br>
+        そのまま「ぼうけんに しゅっぱつ！」で <b>2年生1学期の 56もん</b>が はじまります。<br>
+        スプレッドシートで べつの もんだいを つくったときだけ、その URL を いれてください。
       </div>
       <div id="settings-btns">
         <button id="settings-save" class="puni-btn">ほぞんする</button>
@@ -1919,13 +1920,13 @@ function saveSettings(){
   }
   if (url) localStorage.setItem("kanjimon_csv_url", url);
   else localStorage.removeItem("kanjimon_csv_url");
-  msg.className = ""; msg.textContent = url ? "✅ ほぞんしました！つぎの ぼうけんから つかわれます" : "✅ けしました（サンプルもんだいに なります）";
+  msg.className = ""; msg.textContent = url ? "✅ ほぞんしました！つぎの ぼうけんから つかわれます" : "✅ けしました（もとの 56もんに もどります）";
 }
 function clearSettings(){
   SoundFX.tap();
   $("csv-url").value = "";
   localStorage.removeItem("kanjimon_csv_url");
-  const msg = $("settings-msg"); msg.className = ""; msg.textContent = "✅ けしました（サンプルもんだいに なります）";
+  const msg = $("settings-msg"); msg.className = ""; msg.textContent = "✅ けしました（もとの 56もんに もどります）";
 }
 
 /* ---------- ★ やめる（タイトルへ戻る）（ここに追加）---------- */
@@ -1953,11 +1954,14 @@ function quitToTitle(){
 }
 
 /* ---------- 起動 ---------- */
+/* 同じフォルダに入っている問題集。URLを入れなくても最初からこれで遊べる */
+const DEFAULT_CSV = "questions_grade2_term1.csv";
+
 async function startGame(useSample){
   SoundFX.unlock();
   const status = $("csv-status");
-  // 問題のURLは「先生用せってい」で保存したものを使う（タイトルには入力欄を置かない）
-  const url = (localStorage.getItem("kanjimon_csv_url") || "").trim();
+  // ふだんは同じフォルダの問題集を読む。「先生用せってい」でURLを入れたときだけ そちらを使う
+  const url = (localStorage.getItem("kanjimon_csv_url") || "").trim() || DEFAULT_CSV;
   status.className = ""; status.textContent = "";
 
   if (!useSample && url){
